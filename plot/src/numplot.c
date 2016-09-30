@@ -1,4 +1,4 @@
-#include "numplot.h"
+#include "vsu/plot.h"
 #define _VSU_NUM_PLOT_TICK_WIDTH_COEF_ 1e-2
 
 struct _numplot_space

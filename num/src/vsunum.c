@@ -1,4 +1,4 @@
-#include "vsunum.h"
+#include "vsu/num.h"
 
 static char *FORMAT_REAL = "%12.4Lf";
 static char *FORMAT_IMAG = "%12.4Lfi";

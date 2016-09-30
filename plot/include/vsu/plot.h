@@ -4,8 +4,8 @@
 #include <cairo.h>
 #include <err.h>
 
-#include "vsunum.h"
-#include "approx_newton.h"
+#include "vsu/num.h"
+#include "vsu/approx_newton.h"
 
 #define NUMPLOT_NO_MEMORY 2
 

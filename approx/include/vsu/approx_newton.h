@@ -1,4 +1,4 @@
-#include "vsunum.h"
+#include "vsu/num.h"
 
 #ifndef vsu_num_approx_newton_h
 #define vsu_num_approx_newton_h

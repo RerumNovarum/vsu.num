@@ -1,6 +1,6 @@
 #include <math.h>
 
-#include "approx_newton.h"
+#include "vsu/approx_newton.h"
 
 NUMBER
 newton_approx_equidist_kth_dd(

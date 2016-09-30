@@ -6,9 +6,9 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "vsunum.h"
-#include "numplot.h"
-#include "approx_newton.h"
+#include "vsu/num.h"
+#include "vsu/plot.h"
+#include "vsu/approx_newton.h"
 
 #define SUCCESS 0;
 #define INVALID_INPUT 1
