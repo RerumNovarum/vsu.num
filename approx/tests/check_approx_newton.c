@@ -3,8 +3,8 @@
 #include <complex.h>
 #include <math.h>
 
-#include "../src/vsunum.h"
-#include "../src/approx_newton.h"
+#include "vsu/num.h"
+#include "vsu/approx_newton.h"
 
 #define EPS 1e-8
 

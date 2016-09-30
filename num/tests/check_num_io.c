@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <check.h>
 
-#include "../src/vsunum.h"
+#include "vsu/num.h"
 
 static char * sample_encoded_nums[] =
 {

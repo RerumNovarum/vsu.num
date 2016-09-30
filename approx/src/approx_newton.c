@@ -1,4 +1,4 @@
-#include "approx_newton.h"
+#include "vsu/approx_newton.h"
 
 NUMBER
 newton_eval(
