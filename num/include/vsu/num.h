@@ -72,17 +72,29 @@ num_grid_equidist(
 
 void
 num_grid_equidist_r(
-        NUMBER a,
-        NUMBER b,
+        NUMBER_R a,
+        NUMBER_R b,
         size_t n,
-        NUMBER **grid);
+        NUMBER_R **grid);
 void
 num_fill_vals(
-        NUMBER (*f)(NUMBER x),
+        NUM_TO_NUM f,
         NUMBER *domain,
         size_t n,
         NUMBER **out);
+void
+num_fill_vals_r(
+        NUMR_TO_NUMR f,
+        NUMBER_R *domain,
+        size_t n,
+        NUMBER_R **out);
 
+void
+num_fill_vals_frproj(
+        NUM_TO_NUM f,
+        NUMBER_R *domain,
+        size_t n,
+        NUMBER_R **out);
 void
 num_table_equidist(
         NUM_TO_NUM f,

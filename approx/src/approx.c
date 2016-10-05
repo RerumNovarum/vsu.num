@@ -13,6 +13,7 @@
 #define SUCCESS 0;
 #define INVALID_INPUT 1
 #define NO_MEMORY 2
+#define NOT_IMPLEMENTED 3
 
 #define O_INPUT_FILE 'i'
 #define O_OUTPUT_FILE 'o'
@@ -29,6 +30,7 @@
 #define O_LINEWIDTH 'L'
 #define O_PLOT 'p'
 #define O_PLOT_NEWTON_EQUIDIST 'N'
+#define O_WRITE 2
 
 const char *argp_program_version = "approx 0.01";
 const char *argp_program_bug_address = "<rerumnovarum@openmailbox.org>";
@@ -61,8 +63,9 @@ static struct argp_option options[] = {
         "at which the graph will be drawn as a line segments between pivot points `x[i],f(x[i])`" },
     { "linewidth", O_LINEWIDTH, "REAL", 0, "Linewidth" },
     { "plot", O_PLOT, 0, 0, "Plot a function graph" },
-    { "plot_newton_equidist", PLOT_NEWTON_EQUIDIST, 0,
-        "Plot a graph of interpolation polynomial built in Newton form on equidistant grid" }
+    { "plot_newtoneq", O_PLOT_NEWTON_EQUIDIST, 0, 0,
+        "Plot a graph of interpolation polynomial built in Newton form on equidistant grid" },
+    { "write", O_WRITE, 0, 0, "Flush current image to current OUTPUT_FILE" },
     { 0 }
 };
 
@@ -107,98 +110,92 @@ struct arguments
     char *output_fname;
     NUM_TO_NUM func;
     size_t width, height;
-    NUMBER_R *pltgrid;
-    bool pltgrid_pending;  /* need to recompute the pltgrid */
     NUMBER_R a, b;  /* function domain [a,b] */
-    bool grid_equidist_pending;
     NUMBER *grid;
     NUMBER *vals;
+    NUMBER_R *pltgrid;
+    NUMBER_R *pltvals;
     NUMBER_R y_min, y_max;
     size_t pt_no;
     size_t plt_pt_no;
     double linewidth;
+    cairo_t *cr;
+    cairo_surface_t *surface;
+    bool vals_pending;  /* need to recompute the vals */
+    bool pltgrid_pending; /* &c */
+    bool grid_pending;
+    bool cairo_pending; /* need to create new cairo context */
+    bool write_pending;
 };
 
 void
-static cmd_deviation_equidist(struct arguments *args)
+static compute_pendings(struct arguments *args)
 {
-    cairo_surface_t *surface;
-    cairo_t *cr;
-
-    surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, args->width, args->height);
-    cr = cairo_create(surface);
-
-    /* TODO: background */
-
-    cairo_set_source_rgb(cr, 0, 0, 0);
-    num_cairo_begin_plot(
-            cr,
-            0, 0,
-            args->width, args->height,
-            args->a, args->b,
-            args->y_min, args->y_max);
-    cairo_set_line_width(cr, args->linewidth);
-    cairo_stroke(cr);
-
-    cairo_set_source_rgb(cr, 0, 0xff, 0);
-    num_cairo_plot_func_real(
-            cr,
-            args->a, args->b,
-            args->func,
-            args->plt_pt_no);
-    cairo_stroke(cr);
-
-    cairo_set_source_rgb(cr, 0xff, 0, 0);
-    cairo_set_line_width(cr, .5 * args->linewidth);
-    num_cairo_plot_newton_approx_equidist_real(
-            cr,
-            args->a,
-            args->b,
-            args->func,
-            args->pt_no,
-            args->plt_pt_no);
-    cairo_stroke(cr);
-
-    cairo_set_line_width(cr, args->linewidth);
-    cairo_set_source_rgb(cr, 0, 0, 0);
-    num_cairo_end_plot(cr);
-    cairo_stroke(cr);
-    cairo_set_source_rgba(cr, 0, 0, 0, 0);
-
-    cairo_surface_write_to_png(surface, args->output_fname);
-    cairo_destroy(cr);
-    cairo_surface_destroy(surface);
-}
-
-void
-static recompute_grid(arguments *args)
-{
-    if (args->grid_equidist_pending)
+    if (args->grid_pending)
     {
-        if (b <= a)
+        if (args->b <= args->a)
         {
             err(INVALID_INPUT, "$a$ should be strictly less than $b$");
         }
-        num_grid_equidist(args->a, args->b, args->grid, args->pt_no);
-        args->grid_pending = false;
+        if (args->grid != NULL)
+        {
+            free(args->grid);
+            args->grid = NULL;
+        }
+        num_grid_equidist(args->a, args->b, args->pt_no, &(args->grid));
+        if (args->vals_pending)
+        {
+            if (args->vals != NULL)
+            {
+                free(args->vals); /* not realloc since it'd require error handling */
+                args->vals = NULL;
+            }
+            num_fill_vals(args->func, args->grid, args->pt_no, &(args->vals));
+        }
     }
-}
-
-void
-static recompute_pltgrid(arguments *args)
-{
     if (args->pltgrid_pending)
     {
-        if (b <= a)
+        if (args->b <= args->a)
         {
             err(INVALID_INPUT, "$a$ should be strictly less than $b$");
         }
-        num_grid_equidist_r(args->a, args->b, args->pltgrid, args->plt_pt_no);
-        args->pltgrid_pending = false;
+        if (args->pltgrid != NULL)
+        {
+            free(args->pltgrid);
+            args->pltvals = NULL;
+        }
+        num_grid_equidist_r(args->a, args->b, args->plt_pt_no, &(args->pltgrid));
+        if (args->vals_pending)
+        {
+            if (args->pltvals != NULL)
+            {
+                free(args->pltvals);
+                args->pltvals = NULL;
+            }
+            num_fill_vals_frproj(args->func, args->pltgrid, args->plt_pt_no, &(args->pltvals));
+        }
     }
+    if (args->cairo_pending)
+    {
+        if (args->cr != 0) cairo_destroy(args->cr);
+        if (args->surface != 0) cairo_surface_destroy(args->surface);
+        cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, args->width, args->height);
+        cairo_t *cr = cairo_create(surface);
+        args->surface = surface;
+        args->cr = cr;
+        /* num_cairo_end_plot is in O_WRITE */
+        num_cairo_begin_plot(
+                args->cr,
+                0, 0,
+                args->width, args->height,
+                args->a, args->b,
+                args->y_min, args->y_max);
+    }
+    args->cairo_pending = false;
+    args->grid_pending = false;
+    args->vals_pending = false;
+    args->pltgrid_pending = false;
 }
-
-
 
 static error_t
 parse_opt(int key, char *arg, struct argp_state *state)
@@ -255,12 +252,42 @@ parse_opt(int key, char *arg, struct argp_state *state)
             args->plt_pt_no = (size_t) REAL(num_sgetn(arg, strlen(arg)));
             break;
         case O_PLOT:
-            recompute_grid(args);
-            recompute_pltgrid(args);
+            compute_pendings(args);
+            compute_pendings(args);
+            args->write_pending = true;
+            cairo_set_source_rgb(args->cr, 0, 0xff, 0);
+            cairo_set_line_width(args->cr, args->linewidth);
+            num_cairo_plot(
+                    args->cr,
+                    args->pltgrid,
+                    args->pltvals,
+                    args->plt_pt_no);
+            cairo_stroke(args->cr);
+
+
             break;
-        case O_PLOT:
-            recompute_grid(args);
-            recompute_pltgrid(args);
+        case O_PLOT_NEWTON_EQUIDIST:
+            compute_pendings(args);
+            args->write_pending = true;
+            cairo_set_source_rgb(args->cr, 0xff, 0, 0);
+            cairo_set_line_width(args->cr, args->linewidth);
+            num_cairo_plot_newton_approx_equidist_real(
+                    args->cr,
+                    args->a,
+                    args->b,
+                    args->func,
+                    args->pt_no,
+                    args->plt_pt_no);
+            cairo_stroke(args->cr);
+            break;
+        case O_WRITE:
+            cairo_set_line_width(args->cr, args->linewidth);
+            cairo_set_source_rgb(args->cr, 0, 0, 0);
+            /* num_cairo_begin_plot is in compute_pendings() */
+            num_cairo_end_plot(args->cr);
+            cairo_stroke(args->cr);
+            cairo_set_source_rgba(args->cr, 0, 0, 0, 0);
+            cairo_surface_write_to_png(args->surface, args->output_fname);
             break;
         case ARGP_KEY_ARG:
             break;
@@ -278,20 +305,33 @@ main(int argc, char **argv)
     struct arguments args;
     args.input_fname = "-";
     args.output_fname = "-";
-    args.func = 0;
+    args.func = NULL;
     args.a = 0;
     args.b = 1;
-    args.grid_equidist_pending = true;
-    args.table = 0;
     args.width = 1536;
     args.height = 1536;
-    args.pltgrid_pending = true;
     args.y_min = 0;
     args.y_max = 1;
     args.pt_no = 3;
     args.plt_pt_no = 128;
     args.linewidth = .1;
+    args.grid = NULL;
+    args.vals = NULL;
+    args.pltgrid = NULL;
+    args.pltvals = NULL;
+    args.cr = NULL;
+    args.surface = NULL;
+    args.cairo_pending = true;
+    args.pltgrid_pending = true;
+    args.vals_pending = true;
+    args.grid_pending = true;
 
     // error_t argp_parse (argp, argc, argv, flags, arg_index, input)
     argp_parse(&argp, argc, argv, 0, 0, &args);
+    if (args.write_pending)
+    {
+        struct argp_state state;
+        state.input = &args;
+        parse_opt(O_WRITE, "write", &state);
+    }
 }

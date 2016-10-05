@@ -20,7 +20,7 @@ void
 num_cairo_end_plot(cairo_t *cr);
 
 void
-num_cairo_polychain(
+num_cairo_plot(
         cairo_t *cr,
         NUMBER_R const *const x,
         NUMBER_R const *const y,

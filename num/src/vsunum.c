@@ -199,7 +199,7 @@ int num_fnextn(FILE *in, NUMBER *result)
     }
     funlockfile(in);
 
-    return i;
+    return i-1; /* -1 excludes closing EOF or space */
 }
 
 int num_fputn(NUMBER num, FILE *out)
@@ -264,32 +264,61 @@ num_table_readt(FILE *in, TABLE *t)
 
 void
 num_fill_vals(
-        NUMBER (*f)(NUMBER x),
+        NUM_TO_NUM f,
         NUMBER *dom,
         size_t n,
         NUMBER **out)
 {
-    for (int i = 0; i < n; ++i)
+    *out = malloc(n * sizeof(NUMBER));
+    for (int i = 0; i < (n); ++i)
     {
         (*out)[i] = (*f)(dom[i]);
     }
 }
 
-#define NUM_GRID_EQUIDIST(a, b, n, row, wordsize) \
+void
+num_fill_vals_r(
+        NUMR_TO_NUMR f,
+        NUMBER_R *dom,
+        size_t n,
+        NUMBER_R **out)
+{
+    *out = malloc(n * sizeof(NUMBER_R));
+    for (int i = 0; i < (n); ++i)
+    {
+        (*out)[i] = (*f)(dom[i]);
+    }
+}
+
+void
+num_fill_vals_frproj(
+        NUM_TO_NUM f,
+        NUMBER_R *dom,
+        size_t n,
+        NUMBER_R **out)
+{
+    *out = malloc(n * sizeof(NUMBER_R));
+    for (int i = 0; i < (n); ++i)
+    {
+        (*out)[i] = REAL((*f)(dom[i]));
+    }
+}
+#define NUM_GRID_EQUIDIST(a, b, n, row, type) \
 { \
-    if (n > 0)  \
+    if ((n) > 0)  \
     {  \
-        *row = malloc(n*wordsize);  \
-        for (int k = 1; k < n; ++k)  \
+        size_t bytes = (n) * sizeof(type);  \
+        (row) = malloc(bytes);  \
+        for (int k = 1; k < (n); ++k)  \
         {  \
-            (*row)[k] = a + (b - a)*k/(n-1);  \
+            (row)[k] = (type)(a + (b - a)*k/(n-1));  \
         }  \
-        (*row)[0] = a;  \
-        (*row)[n-1] = b;  \
+        (row)[0] = (type) a;  \
+        (row)[n-1] = (type) b;  \
     }  \
     else  \
     {  \
-        *row = 0;  \
+        (row) = 0;  \
     } \
 }
     
@@ -301,7 +330,7 @@ num_grid_equidist(
         size_t n,
         NUMBER **row)
 {
-    NUM_GIRD_EQUIDIST(a, b, n, row, sizeof(NUMBER));
+    NUM_GRID_EQUIDIST(a, b, n, *row, NUMBER);
 }
 
 void
@@ -311,7 +340,7 @@ num_grid_equidist_r(
         size_t n,
         NUMBER_R **row)
 {
-    NUM_GIRD_EQUIDIST(a, b, n, row, sizeof(NUMBER_R));
+    NUM_GRID_EQUIDIST(a, b, n, *row, NUMBER_R);
 }
 
 void
