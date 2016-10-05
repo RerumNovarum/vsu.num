@@ -14,6 +14,22 @@
 #define INVALID_INPUT 1
 #define NO_MEMORY 2
 
+#define O_INPUT_FILE 'i'
+#define O_OUTPUT_FILE 'o'
+#define O_PRINT 'P'
+#define O_WIDTH 'w'
+#define O_HEIGHT 'h'
+#define O_Y_MIN 'y'
+#define O_Y_MAX 'Y'
+#define O_X_MIN 'x'
+#define O_X_MAX 'X'
+#define O_FUNC 'f'
+#define O_PT_NO 'n'
+#define O_PLT_PT_NO 1
+#define O_LINEWIDTH 'L'
+#define O_PLOT 'p'
+#define O_PLOT_NEWTON_EQUIDIST 'N'
+
 const char *argp_program_version = "approx 0.01";
 const char *argp_program_bug_address = "<rerumnovarum@openmailbox.org>";
 
@@ -24,31 +40,29 @@ static char args_doc[] =
 "";
 
 static struct argp_option options[] = {
-    { "input", 'i', "INPUT_FILE", 0, "Input file; Defaults to '-' (stdin)" },
-    { "output", 'o', "OUTPUT_FILE", 0, "Output file; Defaults to '-' (stdout)" },
-    { "print", 'p', 0, 0, "Print table" },
-    { "width", 'w', "INTEGER", 0, "Output image width" },
-    { "height", 'h', "INTEGER", 0, "Output image height" },
-    { "y_min", 'y', "NUMBER", 0,
+    { "input", O_INPUT_FILE, "INPUT_FILE", 0, "Input file; Defaults to '-' (stdin)" },
+    { "output", O_OUTPUT_FILE, "OUTPUT_FILE", 0, "Output file; Defaults to '-' (stdout)" },
+    { "print", O_PRINT, 0, 0, "Print table" },
+    { "width", O_WIDTH, "INTEGER", 0, "Output image width" },
+    { "height", O_HEIGHT, "INTEGER", 0, "Output image height" },
+    { "y_min", O_Y_MIN, "NUMBER", 0,
         "Defines lower bound of range to be drawn; "
             "Defaults to 0"},
-    { "y_max", 'Y', "NUMBER", 0,
+    { "y_max", O_Y_MAX, "NUMBER", 0,
         "Defines upper bound of range to be drawn; "
         "Defaults to 1" },
-    { "x_min", 'x', "NUMBER", 0, "Left bound of domain [a,b]; Defaults to 0" },
-    { "x_max", 'X', "NUMBER", 0, "Right bound of domain [a,b]; Defaults to 1" },
-    { "func", 'f', "FUNCTION_NAME", 0, "Function to be examined" },
-    { "pt_no", 'n', "UNSIGNED", 0, "Number of points" },
-    { "plt_pt_no", 'P', "UNSIGNED", 0,
+    { "x_min", O_X_MIN, "NUMBER", 0, "Left bound of domain [a,b]; Defaults to 0" },
+    { "x_max", O_X_MAX, "NUMBER", 0, "Right bound of domain [a,b]; Defaults to 1" },
+    { "func", O_FUNC, "FUNCTION_NAME", 0, "Function to be examined" },
+    { "pt_no", O_PT_NO, "UNSIGNED", 0, "Number of points" },
+    { "plt_pt_no", O_PLT_PT_NO, "UNSIGNED", 0,
         "Number of pivot points for a plot; "
         "[x,X] will be split into `plt_pt_no` parts "
         "at which the graph will be drawn as a line segments between pivot points `x[i],f(x[i])`" },
-    { "linewidth", 'L', "REAL", 0, "Linewidth" },
-    { "dev-equidist", 'd', 0, 0,
-        "Plot function and its global interpolation polynomial "
-        "built on equidistant grid on [a,b]; Requires --func; "
-        "Uses interpolation polynomial of degree `pt_no`; "
-        "Set number of plot pivot points with `plt_pt_no`" },
+    { "linewidth", O_LINEWIDTH, "REAL", 0, "Linewidth" },
+    { "plot", O_PLOT, 0, 0, "Plot a function graph" },
+    { "plot_newton_equidist", PLOT_NEWTON_EQUIDIST, 0,
+        "Plot a graph of interpolation polynomial built in Newton form on equidistant grid" }
     { 0 }
 };
 
@@ -69,7 +83,7 @@ static struct
     /* lexicographically smaller than longer */
     { "id", 2, NUM_IDENTITY },
     { "sqr", 3, NUM_SQR },
-    { "log_re", 6, _log_re }
+    { "log", 6, _log_re }
 };
 
 static NUM_TO_NUM function_by_name(char *name, size_t len)
@@ -93,7 +107,12 @@ struct arguments
     char *output_fname;
     NUM_TO_NUM func;
     size_t width, height;
-    NUMBER_R a, b;
+    NUMBER_R *pltgrid;
+    bool pltgrid_pending;  /* need to recompute the pltgrid */
+    NUMBER_R a, b;  /* function domain [a,b] */
+    bool grid_equidist_pending;
+    NUMBER *grid;
+    NUMBER *vals;
     NUMBER_R y_min, y_max;
     size_t pt_no;
     size_t plt_pt_no;
@@ -151,63 +170,97 @@ static cmd_deviation_equidist(struct arguments *args)
     cairo_surface_destroy(surface);
 }
 
+void
+static recompute_grid(arguments *args)
+{
+    if (args->grid_equidist_pending)
+    {
+        if (b <= a)
+        {
+            err(INVALID_INPUT, "$a$ should be strictly less than $b$");
+        }
+        num_grid_equidist(args->a, args->b, args->grid, args->pt_no);
+        args->grid_pending = false;
+    }
+}
+
+void
+static recompute_pltgrid(arguments *args)
+{
+    if (args->pltgrid_pending)
+    {
+        if (b <= a)
+        {
+            err(INVALID_INPUT, "$a$ should be strictly less than $b$");
+        }
+        num_grid_equidist_r(args->a, args->b, args->pltgrid, args->plt_pt_no);
+        args->pltgrid_pending = false;
+    }
+}
+
+
+
 static error_t
 parse_opt(int key, char *arg, struct argp_state *state)
 {
     struct arguments *args = state->input;
     switch (key)
     {
-        case 'i':
+        case O_INPUT_FILE:
             args->input_fname = arg;
             break;
-        case 'o':
+        case O_OUTPUT_FILE:
             args->output_fname = arg;
             break;
             /*
              * TODO: replace $REAL\circ num_sgetn$ with something real-specific
              *       or, at least, check if imaginary part is zero
              */
-        case 'w':
+        case O_WIDTH:
             args->width = (size_t) REAL(num_sgetn(arg, strlen(arg)));
+            args->pltgrid_pending = true;
             break;
-        case 'h':
+        case O_HEIGHT:
             args->height = (size_t) REAL(num_sgetn(arg, strlen(arg)));
             break;
-        case 'y':
+        case O_Y_MIN:
             args->y_min = (double) REAL(num_sgetn(arg, strlen(arg)));
             break;
-        case 'Y':
+        case O_Y_MAX:
             args->y_max = (double) REAL(num_sgetn(arg, strlen(arg)));
             break;
-        case 'x':
+        case O_X_MIN:
             args->a = REAL(num_sgetn(arg, strlen(arg)));
+            args->grid_pending = true;
             break;
-        case 'X':
+        case O_X_MAX:
             args->b = REAL(num_sgetn(arg, strlen(arg)));
+            args->grid_pending = true;
             break;
-        case 'f':
+        case O_FUNC:
             args->func = function_by_name(arg, strlen(arg));
             if (args->func == 0)
             {
                 err(INVALID_INPUT, "unknown function: `%s`", arg);
             }
             break;
-        case 'n':
+        case O_PT_NO:
             /* TODO: replace with posix functions? */
             args->pt_no = (size_t) REAL(num_sgetn(arg, strlen(arg)));
             break;
-        case 'L':
+        case O_LINEWIDTH:
             args->linewidth = REAL(num_sgetn(arg, strlen(arg)));
             break;
-        case 'P':
+        case O_PLT_PT_NO:
             args->plt_pt_no = (size_t) REAL(num_sgetn(arg, strlen(arg)));
             break;
-        case 'd':
-            if (args->func == 0)
-            {
-                err(INVALID_INPUT, "function is not defined");
-            }
-            cmd_deviation_equidist(args);
+        case O_PLOT:
+            recompute_grid(args);
+            recompute_pltgrid(args);
+            break;
+        case O_PLOT:
+            recompute_grid(args);
+            recompute_pltgrid(args);
             break;
         case ARGP_KEY_ARG:
             break;
@@ -228,11 +281,14 @@ main(int argc, char **argv)
     args.func = 0;
     args.a = 0;
     args.b = 1;
+    args.grid_equidist_pending = true;
+    args.table = 0;
     args.width = 1536;
     args.height = 1536;
+    args.pltgrid_pending = true;
     args.y_min = 0;
     args.y_max = 1;
-    args.pt_no = 4;
+    args.pt_no = 3;
     args.plt_pt_no = 128;
     args.linewidth = .1;
 

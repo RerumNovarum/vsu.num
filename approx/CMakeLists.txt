@@ -8,7 +8,7 @@ find_library(M_LIBRARY m)
 include_directories(PRIVATE ${CAIRO_INCLUDE_DIRS})
 
 add_library(vsu_approx STATIC src/approx_newton.c src/approx_newton_equidist.c)
-target_include_directories(vsu_approx PUBLIC ./include)
+target_include_directories(vsu_approx PUBLIC include)
 target_link_libraries(vsu_approx vsu_num ${CAIRO_LIBRARIES})
 
 add_executable(approx src/approx.c)

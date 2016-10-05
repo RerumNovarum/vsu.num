@@ -69,6 +69,13 @@ num_grid_equidist(
         NUMBER b,
         size_t n,
         NUMBER **grid);
+
+void
+num_grid_equidist_r(
+        NUMBER a,
+        NUMBER b,
+        size_t n,
+        NUMBER **grid);
 void
 num_fill_vals(
         NUMBER (*f)(NUMBER x),

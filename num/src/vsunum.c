@@ -275,6 +275,25 @@ num_fill_vals(
     }
 }
 
+#define NUM_GRID_EQUIDIST(a, b, n, row, wordsize) \
+{ \
+    if (n > 0)  \
+    {  \
+        *row = malloc(n*wordsize);  \
+        for (int k = 1; k < n; ++k)  \
+        {  \
+            (*row)[k] = a + (b - a)*k/(n-1);  \
+        }  \
+        (*row)[0] = a;  \
+        (*row)[n-1] = b;  \
+    }  \
+    else  \
+    {  \
+        *row = 0;  \
+    } \
+}
+    
+
 void
 num_grid_equidist(
         NUMBER a,
@@ -282,21 +301,17 @@ num_grid_equidist(
         size_t n,
         NUMBER **row)
 {
-    if (n > 0)
-    {
-        *row = malloc(n*sizeof(NUMBER));
+    NUM_GIRD_EQUIDIST(a, b, n, row, sizeof(NUMBER));
+}
 
-        for (int k = 1; k < n; ++k)
-        {
-            (*row)[k] = a + (b - a)*k/(n-1);
-        }
-        (*row)[0] = a;
-        (*row)[n-1] = b;
-    }
-    else
-    {
-        *row = 0;
-    }
+void
+num_grid_equidist_r(
+        NUMBER_R a,
+        NUMBER_R b,
+        size_t n,
+        NUMBER_R **row)
+{
+    NUM_GIRD_EQUIDIST(a, b, n, row, sizeof(NUMBER_R));
 }
 
 void
