@@ -176,6 +176,34 @@ START_TEST(test_echo_sample_numtable)
 }
 END_TEST
 
+START_TEST(test_sgetn_list)
+{
+    char *input = "0 1i 1+2i 2.5+4i";
+    NUMBER lst[] = { 0, 1*I, 1 + 2*I, 2.5 + 4*I };
+    size_t lengths[] = { 1, 3, 5, 7 };
+    size_t n = sizeof(lst)/sizeof(*lst);
+    size_t len = strlen(input);
+    char *s = input;
+    for (int i = 0; i < n; ++i)
+    {
+        NUMBER x;
+        int read = num_snextn(s, len - (size_t)(s - input), &x);
+        ck_assert_int_gt(read, 0);
+        fprintf(stderr,"i=%d;x=%Lf+%Lfi;\n", i, REAL(x), IMAG(x));
+        fflush(stderr);
+        ck_assert_msg(x == lst[i],
+                "Assertion `x == lst[i]` failed; lst[i]=%Lf+%Lfi;",
+                REAL(lst[i]), IMAG(lst[i]));
+        ck_assert(read == lengths[i]);
+        s += read;
+    }
+    ck_assert_msg(s == (input + len),
+            "Assertion `s == input + len` failed\n"
+            "s=%p; input+len=%p; input=%p; len=%d;",
+            s, input+len, input, len);
+}
+END_TEST
+
 Suite * num_io_suite(void)
 {
     Suite *s;
@@ -191,6 +219,7 @@ Suite * num_io_suite(void)
     tcase_add_test(tc_core, test_num_readtable);
     tcase_add_test(tc_core, test_num_table_print);
     tcase_add_test(tc_core, test_echo_sample_numtable);
+    tcase_add_test(tc_core, test_sgetn_list);
     suite_add_tcase(s, tc_core);
 
     return s;

@@ -71,7 +71,7 @@ num_cairo_plot(
     if (n <= 0) return;
 
     cairo_move_to(cr, x[0], y[0]);
-    for (int i = 1; i < n; ++i)
+    for (int i = 0; i < n; ++i)
     {
         cairo_line_to(cr, x[i], y[i]);
     }

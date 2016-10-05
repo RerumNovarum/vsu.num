@@ -38,6 +38,11 @@ enum num_fnextn_state
     STATE_DONE /* done */
 };
 
+static inline bool isdelimiter(char c)
+{
+    return c == ',' || isspace(c);
+}
+
 int num_fnextn(FILE *in, NUMBER *result)
 {
     /* parse complex numbers
@@ -73,7 +78,7 @@ int num_fnextn(FILE *in, NUMBER *result)
     while (1)
     {
         int c = fgetc_unlocked(in);
-        if (isspace(c))
+        if (isdelimiter(c))
         {
             ++i;
         } else
@@ -112,7 +117,7 @@ int num_fnextn(FILE *in, NUMBER *result)
                 c = fgetc_unlocked(in);
                 i += 1;
 
-                if (c == EOF || isspace(c))
+                if (c == EOF || isdelimiter(c))
                 {
                     if (global_empty)
                         return -1;
@@ -138,7 +143,7 @@ int num_fnextn(FILE *in, NUMBER *result)
             case STATE_NINT:
                 c = fgetc_unlocked(in);
                 i += 1;
-                if (c == '+' || c == '-' || isspace(c) || c == EOF)
+                if (c == '+' || c == '-' || isdelimiter(c) || c == EOF)
                 {
                     state = STATE_SAVR;
                     ungetc(c, in);
@@ -164,7 +169,7 @@ int num_fnextn(FILE *in, NUMBER *result)
             case STATE_NFRA:
                 c = fgetc_unlocked(in);
                 i += 1;
-                if (c == '+' || c == '-' || isspace(c) || c == EOF)
+                if (c == '+' || c == '-' || isdelimiter(c) || c == EOF)
                 {
                     state = STATE_SAVR;
                     ungetc(c, in);
@@ -199,7 +204,7 @@ int num_fnextn(FILE *in, NUMBER *result)
     }
     funlockfile(in);
 
-    return i;
+    return i-1; /* -1 excludes closing EOF or space */
 }
 
 int num_fputn(NUMBER num, FILE *out)
@@ -264,16 +269,64 @@ num_table_readt(FILE *in, TABLE *t)
 
 void
 num_fill_vals(
-        NUMBER (*f)(NUMBER x),
+        NUM_TO_NUM f,
         NUMBER *dom,
         size_t n,
         NUMBER **out)
 {
-    for (int i = 0; i < n; ++i)
+    *out = malloc(n * sizeof(NUMBER));
+    for (int i = 0; i < (n); ++i)
     {
         (*out)[i] = (*f)(dom[i]);
     }
 }
+
+void
+num_fill_vals_r(
+        NUMR_TO_NUMR f,
+        NUMBER_R *dom,
+        size_t n,
+        NUMBER_R **out)
+{
+    *out = malloc(n * sizeof(NUMBER_R));
+    for (int i = 0; i < (n); ++i)
+    {
+        (*out)[i] = (*f)(dom[i]);
+    }
+}
+
+void
+num_fill_vals_frproj(
+        NUM_TO_NUM f,
+        NUMBER_R *dom,
+        size_t n,
+        NUMBER_R **out)
+{
+    *out = malloc(n * sizeof(NUMBER_R));
+    for (int i = 0; i < (n); ++i)
+    {
+        (*out)[i] = REAL((*f)(dom[i]));
+    }
+}
+#define NUM_GRID_EQUIDIST(a, b, n, row, type) \
+{ \
+    if ((n) > 0)  \
+    {  \
+        size_t bytes = (n) * sizeof(type);  \
+        (row) = malloc(bytes);  \
+        for (int k = 1; k < (n); ++k)  \
+        {  \
+            (row)[k] = (type)(a + (b - a)*k/(n-1));  \
+        }  \
+        (row)[0] = (type) a;  \
+        (row)[n-1] = (type) b;  \
+    }  \
+    else  \
+    {  \
+        (row) = 0;  \
+    } \
+}
+    
 
 void
 num_grid_equidist(
@@ -282,21 +335,17 @@ num_grid_equidist(
         size_t n,
         NUMBER **row)
 {
-    if (n > 0)
-    {
-        *row = malloc(n*sizeof(NUMBER));
+    NUM_GRID_EQUIDIST(a, b, n, *row, NUMBER);
+}
 
-        for (int k = 1; k < n; ++k)
-        {
-            (*row)[k] = a + (b - a)*k/(n-1);
-        }
-        (*row)[0] = a;
-        (*row)[n-1] = b;
-    }
-    else
-    {
-        *row = 0;
-    }
+void
+num_grid_equidist_r(
+        NUMBER_R a,
+        NUMBER_R b,
+        size_t n,
+        NUMBER_R **row)
+{
+    NUM_GRID_EQUIDIST(a, b, n, *row, NUMBER_R);
 }
 
 void
@@ -413,4 +462,15 @@ NUMBER NUM_IDENTITY(NUMBER x)
 NUMBER NUM_SQR(NUMBER x)
 {
     return x*x;
+}
+
+NUMBER_R num_max_deviation(NUMBER *X, NUMBER *Y, size_t pt_no)
+{
+    NUMBER_R max = -INFINITY;
+    for (int i = 0; i < pt_no; ++i)
+    {
+        NUMBER_R d = ABS(X[i] - Y[i]);
+        max = fmaxl(max, d);
+    }
+    return max;
 }

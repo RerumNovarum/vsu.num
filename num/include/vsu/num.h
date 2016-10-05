@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <complex.h>
+#include <math.h>
 
 
 #ifdef DEBUG
@@ -23,6 +24,7 @@ typedef NUMBER (*NUMR_TO_NUMR)(NUMBER_R);
 
 #define REAL(x) creall((x))
 #define IMAG(x) cimagl((x))
+#define ABS(x) cabsl((x))
 
 typedef struct numpoint_r
 {
@@ -69,13 +71,32 @@ num_grid_equidist(
         NUMBER b,
         size_t n,
         NUMBER **grid);
+
+void
+num_grid_equidist_r(
+        NUMBER_R a,
+        NUMBER_R b,
+        size_t n,
+        NUMBER_R **grid);
 void
 num_fill_vals(
-        NUMBER (*f)(NUMBER x),
+        NUM_TO_NUM f,
         NUMBER *domain,
         size_t n,
         NUMBER **out);
+void
+num_fill_vals_r(
+        NUMR_TO_NUMR f,
+        NUMBER_R *domain,
+        size_t n,
+        NUMBER_R **out);
 
+void
+num_fill_vals_frproj(
+        NUM_TO_NUM f,
+        NUMBER_R *domain,
+        size_t n,
+        NUMBER_R **out);
 void
 num_table_equidist(
         NUM_TO_NUM f,
@@ -118,6 +139,10 @@ bool
 num_table_eqt(
         TABLE *t1,
         TABLE *t2);
+
+
+NUMBER_R
+num_max_deviation(NUMBER *X, NUMBER *Y, size_t pt_no);
 
 NUMBER
 NUM_ZERO(NUMBER x);

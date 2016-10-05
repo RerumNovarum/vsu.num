@@ -29,4 +29,13 @@ newton_approx_equidist(
         NUMBER const *const vals,
         size_t pt_no,
         NUMBER **out_dds);
+
+void
+newton_fill(
+        NUMBER const *const pts,
+        NUMBER const *const dds,
+        size_t dds_pt_no,
+        NUMBER const *const dom,
+        NUMBER **out,
+        size_t pt_no);
 #endif
