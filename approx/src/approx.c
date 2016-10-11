@@ -26,7 +26,12 @@
 #define O_LINEWIDTH 'L'
 #define O_PLOT 'p'
 #define O_PLOT_NEWTON_EQUIDIST 'N'
-#define O_WRITE 2
+#define O_WRITE_PLOT 2
+#define O_NEWTON_EQUIDIST_PRINT_ERR 3
+#define O_WHITE 4
+#define O_BLACK 5
+#define O_AB 6
+#define O_YMIN_YMAX 7
 
 const char *argp_program_version = "approx 0.01";
 const char *argp_program_bug_address = "<rerumnovarum@openmailbox.org>";
@@ -56,18 +61,37 @@ static struct argp_option options[] = {
     { "plt_pt_no", O_PLT_PT_NO, "UNSIGNED", 0,
         "Number of pivot points for a plot; "
         "[x,X] will be split into `plt_pt_no` parts "
-        "at which the graph will be drawn as a line segments between pivot points `x[i],f(x[i])`" },
+        "at which the graph will be drawn"
+        " as a line segments between pivot points `x[i],f(x[i])`" },
     { "linewidth", O_LINEWIDTH, "REAL", 0, "Linewidth" },
     { "plot", O_PLOT, 0, 0, "Plot a function graph" },
     { "plot_newtoneq", O_PLOT_NEWTON_EQUIDIST, 0, 0,
         "Plot a graph of interpolation polynomial built in Newton form on equidistant grid" },
-    { "write", O_WRITE, 0, 0, "Flush current image to current OUTPUT_FILE" },
+    { "write", O_WRITE_PLOT, 0, 0, "Flush current image to current OUTPUT_FILE" },
+    { "newtoneq_err", O_NEWTON_EQUIDIST_PRINT_ERR, "POINTS", 0,
+        "Print maximum absolute deviation computed at points "
+            "of equidistant grid covering [x,X] with POINTS points" },
+    { "white", O_WHITE, 0, 0, "Clear background white" },
+    { "black", O_BLACK, 0, 0, "Paint background black" },
+    { "ab", O_AB, "A,B", 0, "Interval [a,b] in the form of two comma-delimited numbers" },
+    { "yY", O_YMIN_YMAX, "y,Y", 0, "Comma-delimited y_min,y_max" },
     { 0 }
 };
 
-NUMBER  _log_re(NUMBER x)
+NUMBER  _num_log_re(NUMBER x)
 {
     return logl(REAL(x));
+}
+
+NUMBER  _num_random(NUMBER x)
+{
+	return rand()*1.0/RAND_MAX;
+}
+
+NUMBER _num_poly_4(NUMBER x)
+{
+	NUMBER x2 = x*x;
+	return 1 + x2*(-10 + x2);
 }
 
 static struct
@@ -82,7 +106,9 @@ static struct
     /* lexicographically smaller than longer */
     { "id", 2, NUM_IDENTITY },
     { "sqr", 3, NUM_SQR },
-    { "log", 6, _log_re }
+    { "log", 3, _num_log_re },
+    { "poly_4", 3, _num_poly_4 },
+	{ "random", 6, _num_random }
 };
 
 static NUM_TO_NUM function_by_name(char *name, size_t len)
@@ -110,8 +136,9 @@ struct arguments
     NUMBER *grid;
     NUMBER *vals;
     NUMBER_R *pltgrid;
-    NUMBER_R *pltvals;
     NUMBER_R y_min, y_max;
+    NUMBER *dds;
+    bool dds_pending;
     size_t pt_no;
     size_t plt_pt_no;
     double linewidth;
@@ -131,6 +158,7 @@ static compute_pendings(struct arguments *args)
     {
         if (args->b <= args->a)
         {
+			fprintf(stderr, "a=%Ld, b=%Ld", args->a, args->b);
             err(INVALID_INPUT, "$a$ should be strictly less than $b$");
         }
         if (args->grid != NULL)
@@ -149,28 +177,13 @@ static compute_pendings(struct arguments *args)
             num_fill_vals(args->func, args->grid, args->pt_no, &(args->vals));
         }
     }
-    if (args->pltgrid_pending)
-    {
-        if (args->b <= args->a)
-        {
-            err(INVALID_INPUT, "$a$ should be strictly less than $b$");
-        }
-        if (args->pltgrid != NULL)
-        {
-            free(args->pltgrid);
-            args->pltvals = NULL;
-        }
-        num_grid_equidist_r(args->a, args->b, args->plt_pt_no, &(args->pltgrid));
-        if (args->vals_pending)
-        {
-            if (args->pltvals != NULL)
-            {
-                free(args->pltvals);
-                args->pltvals = NULL;
-            }
-            num_fill_vals_frproj(args->func, args->pltgrid, args->plt_pt_no, &(args->pltvals));
-        }
-    }
+    args->grid_pending = false;
+    args->vals_pending = false;
+}
+
+void
+static compute_pendings_plt(struct arguments *args)
+{
     if (args->cairo_pending)
     {
         if (args->cr != 0) cairo_destroy(args->cr);
@@ -187,10 +200,35 @@ static compute_pendings(struct arguments *args)
                 args->a, args->b,
                 args->y_min, args->y_max);
     }
-    args->cairo_pending = false;
-    args->grid_pending = false;
-    args->vals_pending = false;
+    if (args->pltgrid_pending)
+    {
+        if (args->b <= args->a)
+        {
+            err(INVALID_INPUT, "$a$ should be strictly less than $b$");
+        }
+        if (args->pltgrid != NULL)
+        {
+            free(args->pltgrid);
+			args->pltgrid = NULL;
+        }
+        num_grid_equidist_r(args->a, args->b, args->plt_pt_no, &(args->pltgrid));
+    }
     args->pltgrid_pending = false;
+    args->cairo_pending = false;
+}
+
+void
+static compute_pendings_dds(struct arguments *args)
+{
+    if (!args->dds_pending) return;
+    compute_pendings(args);
+    args->dds_pending = false;
+    if (args->dds != NULL) free(args->dds);
+    newton_approx_equidist(
+            args->a, args->b,
+            args->vals,
+            args->pt_no,
+            &(args->dds));
 }
 
 static error_t
@@ -204,6 +242,7 @@ parse_opt(int key, char *arg, struct argp_state *state)
             break;
         case O_OUTPUT_FILE:
             args->output_fname = arg;
+			args->cairo_pending = true;
             break;
             /*
              * TODO: replace $REAL\circ num_sgetn$ with something real-specific
@@ -211,25 +250,62 @@ parse_opt(int key, char *arg, struct argp_state *state)
              */
         case O_WIDTH:
             args->width = (size_t) REAL(num_sgetn(arg, strlen(arg)));
-            args->pltgrid_pending = true;
+			args->pltgrid_pending = true;
+			args->cairo_pending = true;
             break;
         case O_HEIGHT:
-            args->height = (size_t) REAL(num_sgetn(arg, strlen(arg)));
-            break;
-        case O_Y_MIN:
-            args->y_min = (double) REAL(num_sgetn(arg, strlen(arg)));
-            break;
-        case O_Y_MAX:
-            args->y_max = (double) REAL(num_sgetn(arg, strlen(arg)));
+			args->height = (size_t) REAL(num_sgetn(arg, strlen(arg)));
+			args->cairo_pending = true;
+			break;
+		case O_Y_MIN:
+			args->y_min = (double) REAL(num_sgetn(arg, strlen(arg)));
+			args->cairo_pending = true;
+			break;
+		case O_Y_MAX:
+			args->y_max = (double) REAL(num_sgetn(arg, strlen(arg)));
             break;
         case O_X_MIN:
             args->a = REAL(num_sgetn(arg, strlen(arg)));
             args->grid_pending = true;
+			args->pltgrid_pending = true;
+			args->cairo_pending = true;
             break;
         case O_X_MAX:
             args->b = REAL(num_sgetn(arg, strlen(arg)));
             args->grid_pending = true;
+			args->pltgrid_pending = true;
+			args->cairo_pending = true;
             break;
+        case O_AB:
+			{
+				char *a = arg;
+				size_t len = strlen(arg);
+				NUMBER z;
+				int read = num_snextn(a, len, &z);
+				a += read;
+				len -= read;
+				args->a = REAL(z);
+				num_snextn(a, len, &z);
+				args->b = REAL(z);
+				args->grid_pending = true;
+				args->pltgrid_pending = true;
+				args->cairo_pending = true;
+				break;
+			}
+        case O_YMIN_YMAX:
+			{
+				char *a = arg;
+				size_t len = strlen(arg);
+				NUMBER z;
+				int read = num_snextn(a, len, &z);
+				a += read;
+				len -= read;
+				args->y_min = REAL(z);
+				num_snextn(a, len, &z);
+				args->y_max = REAL(z);
+				args->cairo_pending = true;
+				break;
+			}
         case O_FUNC:
             args->func = function_by_name(arg, strlen(arg));
             if (args->func == 0)
@@ -240,50 +316,96 @@ parse_opt(int key, char *arg, struct argp_state *state)
         case O_PT_NO:
             /* TODO: replace with posix functions? */
             args->pt_no = (size_t) REAL(num_sgetn(arg, strlen(arg)));
-            break;
+			args->grid_pending = true;
+			args->pltgrid_pending = true;
+			args->cairo_pending = true;
+			break;
         case O_LINEWIDTH:
             args->linewidth = REAL(num_sgetn(arg, strlen(arg)));
+            break;
+        case O_BLACK:
+			compute_pendings(args);
+            compute_pendings_plt(args);
+            cairo_set_source_rgb(args->cr, 0, 0, 0);
+			cairo_paint(args->cr);
+            break;
+        case O_WHITE:
+			compute_pendings(args);
+            compute_pendings_plt(args);
+            cairo_set_source_rgb(args->cr, 0xff, 0xff, 0xff);
+			cairo_paint(args->cr);
             break;
         case O_PLT_PT_NO:
             args->plt_pt_no = (size_t) REAL(num_sgetn(arg, strlen(arg)));
             break;
         case O_PLOT:
-            compute_pendings(args);
-            compute_pendings(args);
-            args->write_pending = true;
-            cairo_set_source_rgb(args->cr, 0, 0xff, 0);
-            cairo_set_line_width(args->cr, args->linewidth);
-            num_cairo_plot(
-                    args->cr,
-                    args->pltgrid,
-                    args->pltvals,
-                    args->plt_pt_no);
-            cairo_stroke(args->cr);
-
-
+			{
+				compute_pendings(args);
+				compute_pendings_plt(args);
+				args->write_pending = true;
+				cairo_set_source_rgb(args->cr, 0, 0xff, 0);
+				cairo_set_line_width(args->cr, args->linewidth);
+				NUMBER_R *pltvals;
+				num_fill_vals_frproj(args->func, args->pltgrid, args->plt_pt_no, &(pltvals));
+				num_cairo_plot(
+						args->cr,
+						args->pltgrid,
+						pltvals,
+						args->plt_pt_no);
+				free(pltvals);
+				cairo_stroke(args->cr);
+				break;
+			}
+		case O_PLOT_NEWTON_EQUIDIST:
+			{
+				compute_pendings(args);
+				compute_pendings_dds(args);
+				compute_pendings_plt(args);
+				args->write_pending = true;
+				cairo_set_source_rgb(args->cr, 0xff, 0, 0);
+				cairo_set_line_width(args->cr, args->linewidth);
+				NUMBER_R *pltvals = malloc(sizeof(NUMBER_R) * args->plt_pt_no);;
+				for (int i = 0; i < args->plt_pt_no; ++i)
+				{
+					pltvals[i] = REAL(newton_eval(args->pltgrid[i], args->grid, args->dds, args->pt_no));
+				}
+				num_cairo_plot(args->cr, args->pltgrid, pltvals, args->plt_pt_no);
+				free(pltvals);
+				cairo_stroke(args->cr);
+				break;
+			}
+		case O_WRITE_PLOT:
+            compute_pendings_plt(args);
+			cairo_set_line_width(args->cr, args->linewidth);
+			cairo_set_source_rgb(args->cr, 0, 0, 0);
+			/* num_cairo_begin_plot is in compute_pendings() */
+			num_cairo_end_plot(args->cr);
+			cairo_stroke(args->cr);
+			cairo_set_source_rgba(args->cr, 0, 0, 0, 0);
+			cairo_surface_write_to_png(args->surface, args->output_fname);
             break;
-        case O_PLOT_NEWTON_EQUIDIST:
-            compute_pendings(args);
-            args->write_pending = true;
-            cairo_set_source_rgb(args->cr, 0xff, 0, 0);
-            cairo_set_line_width(args->cr, args->linewidth);
-            num_cairo_plot_newton_approx_equidist_real(
-                    args->cr,
-                    args->a,
-                    args->b,
-                    args->func,
-                    args->pt_no,
-                    args->plt_pt_no);
-            cairo_stroke(args->cr);
-            break;
-        case O_WRITE:
-            cairo_set_line_width(args->cr, args->linewidth);
-            cairo_set_source_rgb(args->cr, 0, 0, 0);
-            /* num_cairo_begin_plot is in compute_pendings() */
-            num_cairo_end_plot(args->cr);
-            cairo_stroke(args->cr);
-            cairo_set_source_rgba(args->cr, 0, 0, 0, 0);
-            cairo_surface_write_to_png(args->surface, args->output_fname);
+        case O_NEWTON_EQUIDIST_PRINT_ERR:
+			compute_pendings(args);
+            compute_pendings_dds(args);
+            size_t err_pt_no = (size_t) REAL(num_sgetn(arg, strlen(arg)));
+            NUMBER *grid;
+            NUMBER *expected;
+            NUMBER *result;
+            num_grid_equidist(args->a, args->b, err_pt_no, &grid);
+            num_fill_vals(args->func, grid, err_pt_no, &expected);
+            newton_fill(
+                    args->grid, args->dds, args->pt_no,
+                    grid, &result, err_pt_no);
+            NUMBER_R dev = num_max_deviation(expected, result, err_pt_no);
+            free(grid);
+            free(expected);
+            free(result);
+            FILE *f;
+            bool use_std= (strcmp(args->output_fname, "-") == 0);
+            if (use_std) f = stdout;
+            else f = fopen(args->output_fname, "w");
+            fprintf(f, "maxdev=%Lf\n", dev);
+            if (!use_std) fclose(f);
             break;
         case ARGP_KEY_ARG:
             break;
@@ -304,23 +426,24 @@ main(int argc, char **argv)
     args.func = NULL;
     args.a = 0;
     args.b = 1;
-    args.width = 1536;
-    args.height = 1536;
+    args.width = 2048;
+    args.height = 2048;
     args.y_min = 0;
     args.y_max = 1;
-    args.pt_no = 3;
-    args.plt_pt_no = 128;
-    args.linewidth = .1;
+    args.pt_no = 4;
+    args.plt_pt_no = 1536;
+    args.linewidth = .01;
     args.grid = NULL;
     args.vals = NULL;
     args.pltgrid = NULL;
-    args.pltvals = NULL;
     args.cr = NULL;
     args.surface = NULL;
     args.cairo_pending = true;
     args.pltgrid_pending = true;
     args.vals_pending = true;
     args.grid_pending = true;
+	args.dds = NULL;
+	args.dds_pending = true;
 
     // error_t argp_parse (argp, argc, argv, flags, arg_index, input)
     argp_parse(&argp, argc, argv, 0, 0, &args);
@@ -328,6 +451,6 @@ main(int argc, char **argv)
     {
         struct argp_state state;
         state.input = &args;
-        parse_opt(O_WRITE, "write", &state);
+        parse_opt(O_WRITE_PLOT, "write", &state);
     }
 }

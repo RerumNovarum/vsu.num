@@ -38,6 +38,11 @@ enum num_fnextn_state
     STATE_DONE /* done */
 };
 
+static inline bool isdelimiter(char c)
+{
+    return c == ',' || isspace(c);
+}
+
 int num_fnextn(FILE *in, NUMBER *result)
 {
     /* parse complex numbers
@@ -73,7 +78,7 @@ int num_fnextn(FILE *in, NUMBER *result)
     while (1)
     {
         int c = fgetc_unlocked(in);
-        if (isspace(c))
+        if (isdelimiter(c))
         {
             ++i;
         } else
@@ -112,7 +117,7 @@ int num_fnextn(FILE *in, NUMBER *result)
                 c = fgetc_unlocked(in);
                 i += 1;
 
-                if (c == EOF || isspace(c))
+                if (c == EOF || isdelimiter(c))
                 {
                     if (global_empty)
                         return -1;
@@ -138,7 +143,7 @@ int num_fnextn(FILE *in, NUMBER *result)
             case STATE_NINT:
                 c = fgetc_unlocked(in);
                 i += 1;
-                if (c == '+' || c == '-' || isspace(c) || c == EOF)
+                if (c == '+' || c == '-' || isdelimiter(c) || c == EOF)
                 {
                     state = STATE_SAVR;
                     ungetc(c, in);
@@ -164,7 +169,7 @@ int num_fnextn(FILE *in, NUMBER *result)
             case STATE_NFRA:
                 c = fgetc_unlocked(in);
                 i += 1;
-                if (c == '+' || c == '-' || isspace(c) || c == EOF)
+                if (c == '+' || c == '-' || isdelimiter(c) || c == EOF)
                 {
                     state = STATE_SAVR;
                     ungetc(c, in);
@@ -457,4 +462,15 @@ NUMBER NUM_IDENTITY(NUMBER x)
 NUMBER NUM_SQR(NUMBER x)
 {
     return x*x;
+}
+
+NUMBER_R num_max_deviation(NUMBER *X, NUMBER *Y, size_t pt_no)
+{
+    NUMBER_R max = -INFINITY;
+    for (int i = 0; i < pt_no; ++i)
+    {
+        NUMBER_R d = ABS(X[i] - Y[i]);
+        max = fmaxl(max, d);
+    }
+    return max;
 }

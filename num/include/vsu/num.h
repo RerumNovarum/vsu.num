@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <complex.h>
+#include <math.h>
 
 
 #ifdef DEBUG
@@ -23,6 +24,7 @@ typedef NUMBER (*NUMR_TO_NUMR)(NUMBER_R);
 
 #define REAL(x) creall((x))
 #define IMAG(x) cimagl((x))
+#define ABS(x) cabsl((x))
 
 typedef struct numpoint_r
 {
@@ -137,6 +139,10 @@ bool
 num_table_eqt(
         TABLE *t1,
         TABLE *t2);
+
+
+NUMBER_R
+num_max_deviation(NUMBER *X, NUMBER *Y, size_t pt_no);
 
 NUMBER
 NUM_ZERO(NUMBER x);
