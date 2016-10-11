@@ -6,14 +6,10 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "vsu/errors.h"
 #include "vsu/num.h"
 #include "vsu/plot.h"
 #include "vsu/approx_newton.h"
-
-#define SUCCESS 0;
-#define INVALID_INPUT 1
-#define NO_MEMORY 2
-#define NOT_IMPLEMENTED 3
 
 #define O_INPUT_FILE 'i'
 #define O_OUTPUT_FILE 'o'

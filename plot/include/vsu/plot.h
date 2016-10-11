@@ -6,8 +6,9 @@
 
 #include "vsu/num.h"
 #include "vsu/approx_newton.h"
+#include "vsu/errors.h"
 
-#define NUMPLOT_NO_MEMORY 2
+#define NUMPLOT_NO_MEMORY NO_MEMORY
 
 void
 num_cairo_begin_plot(
