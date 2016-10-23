@@ -1,13 +1,13 @@
 #include "vsu/approx_newton.h"
 
-NUMBER
+CC
 newton_eval(
-        NUMBER x,
-        NUMBER const *const pts,
-        NUMBER const *const dds,
+        CC x,
+        CC const *const pts,
+        CC const *const dds,
         size_t pt_no)
 {
-    NUMBER y = dds[pt_no-1];
+    CC y = dds[pt_no-1];
     for (int i = pt_no-1; i > 0; --i)
     {
         y =
@@ -17,9 +17,9 @@ newton_eval(
     return y;
 }
 
-NUMBER
+CC
 newton_evalg(
-        NUMBER x,
+        CC x,
         const NEWTON_DDS dds,
         const TABLE table)
 {
@@ -29,14 +29,14 @@ newton_evalg(
 
 void
 newton_fill(
-        NUMBER const *const pts,
-        NUMBER const *const dds,
+        CC const *const pts,
+        CC const *const dds,
         size_t dds_pt_no,
-        NUMBER const *const dom,
-        NUMBER **out,
+        CC const *const dom,
+        CC **out,
         size_t pt_no)
 {
-    (*out) = malloc(pt_no * sizeof(NUMBER));
+    (*out) = malloc(pt_no * sizeof(CC));
     for (int i = 0; i < pt_no; ++i)
     {
         (*out)[i] = newton_eval(dom[i], pts, dds, dds_pt_no);

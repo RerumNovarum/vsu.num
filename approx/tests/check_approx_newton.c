@@ -8,37 +8,37 @@
 
 #define EPS 1e-8
 
-NUMBER _x3_3x2_1(NUMBER x)
+CC _x3_3x2_1(NUMBER x)
 {
     return (x + 3)*x*x + 1;
 }
-NUMBER _log_re_x(NUMBER x)
+CC _log_re_x(NUMBER x)
 {
     return logl(REAL(x));
 }
 
 START_TEST(test_newton_eval)
 {
-    NUMBER dds[] = 
+    CC dds[] = 
     {
-        (NUMBER) 1,
-        (NUMBER) 2,
-        (NUMBER) 3,
-        (NUMBER) 4*I
+        (CC) 1,
+        (CC) 2,
+        (CC) 3,
+        (CC) 4*I
     };
     size_t n = 4;
     const size_t tc_no = 1;
-    NUMBER x[] =
+    CC x[] =
     {
         1,
         0,
         4
     };
-    NUMBER X[][4] =
+    CC X[][4] =
     {
         { 1, 2, 3, 4 }
     };
-    NUMBER y[] =
+    CC y[] =
     {
         1,
         -19,
@@ -47,7 +47,7 @@ START_TEST(test_newton_eval)
 
     for (int t = 0; t < tc_no; ++t)
     {
-        NUMBER f_x = newton_eval(x[t], X[t], dds, n);
+        CC f_x = newton_eval(x[t], X[t], dds, n);
         if (!(y[t] == f_x))
         {
             char *ys, *fxs;
@@ -65,16 +65,16 @@ END_TEST
 
 START_TEST(test_newton_kth_dd)
 {
-    NUMBER X[] = {0, 1.0/3, 2.0/3, 1};
-    NUMBER Y[] = {0, 1.0/3, 2.0/3, 1};
-    NUMBER DD[] = { 0, 1, 0, 0 };
-    NUMBER_R h = 1.0/3;
+    CC X[] = {0, 1.0/3, 2.0/3, 1};
+    CC Y[] = {0, 1.0/3, 2.0/3, 1};
+    CC DD[] = { 0, 1, 0, 0 };
+    RR h = 1.0/3;
     size_t pt_no = 4;
     size_t n = 4;
 
     for (int k = 0; k < 4; ++k)
     {
-        NUMBER dd = newton_approx_equidist_kth_dd(k, h, Y, n);
+        CC dd = newton_approx_equidist_kth_dd(k, h, Y, n);
         if (!num_eq(DD[k], dd, EPS))
         {
             char *dds, *exps;
@@ -94,7 +94,7 @@ START_TEST(test_approx_newton_equidist)
 {
     TABLE table;
 
-    NUMBER (*ff[])(NUMBER)=
+    CC (*ff[])(NUMBER)=
     {
         NUM_ZERO,
         NUM_IDENTITY,
@@ -117,12 +117,12 @@ START_TEST(test_approx_newton_equidist)
         int b = abn[t][1];
         size_t n = abn[t][2];
         num_table_equidistt(ff[t], abn[t][0], abn[t][1], abn[t][2], &table);
-        NUMBER *dds;
+        CC *dds;
         newton_approx_equidist(a, b, table.y, n, &dds);
         for (int j = 0; j < n; ++j)
         {
-            NUMBER y = newton_eval(table.x[j], table.x, dds, table.pt_no);
-            NUMBER d =  y - table.y[j];
+            CC y = newton_eval(table.x[j], table.x, dds, table.pt_no);
+            CC d =  y - table.y[j];
             if (! (cabsl(d) < EPS))
             {
                 char *sgot, *sexp;

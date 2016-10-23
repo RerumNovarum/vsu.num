@@ -4,7 +4,7 @@
 #include "vsu/num.h"
 #include "vsu/plot.h"
 
-NUMBER _num_log_re(NUMBER x) { return logl(REAL(x)); }
+CC _num_log_re(NUMBER x) { return logl(REAL(x)); }
 int
 main()
 {

@@ -16,18 +16,18 @@ static char * sample_encoded_nums[] =
     "\n2",          /* nextnum should skip preceding whitespaces */
     "\n2 2i"        /* whitespace after nonempty number terminates parsing */
 };
-static NUMBER sample_expected_nums[] =
+static CC sample_expected_nums[] =
 {
-    (NUMBER) 1.0 + 0.0*I,
-    (NUMBER) 2.0*I,
-    (NUMBER) 1.0 + 2.0*I,
-    (NUMBER) .25,
-    (NUMBER) -.25,
-    (NUMBER) 1.0 - I,
-    (NUMBER) -I,
-    (NUMBER) -2*I,
-    (NUMBER) 2,
-    (NUMBER) 2
+    (CC) 1.0 + 0.0*I,
+    (CC) 2.0*I,
+    (CC) 1.0 + 2.0*I,
+    (CC) .25,
+    (CC) -.25,
+    (CC) 1.0 - I,
+    (CC) -I,
+    (CC) -2*I,
+    (CC) 2,
+    (CC) 2
 };
 
 START_TEST(test_num_fnextn_valid_input)
@@ -35,7 +35,7 @@ START_TEST(test_num_fnextn_valid_input)
     size_t n = sizeof(sample_encoded_nums) / sizeof(*sample_encoded_nums);
     for (int i = 0; i < n; ++i)
     {
-        NUMBER n;
+        CC n;
         ck_assert_int_gt(num_snextn(sample_encoded_nums[i], strlen(sample_encoded_nums[i]), &n), -1);
         if (n != sample_expected_nums[i])
         {
@@ -73,10 +73,10 @@ START_TEST(test_num_readtable)
         "1\n3.25\ni",
         "2\n1 2\n3 4"
     };
-    NUMBER x1[] = { 3.25 };
-    NUMBER y1[] = { I };
-    NUMBER x2[] = {1, 2};
-    NUMBER y2[] = {3, 4};
+    CC x1[] = { 3.25 };
+    CC y1[] = { I };
+    CC x2[] = {1, 2};
+    CC y2[] = {3, 4};
     TABLE tables[] =
     {
         {0, 0, 0},
@@ -89,7 +89,7 @@ START_TEST(test_num_readtable)
     {
         TABLE t;
         FILE *in = fmemopen(encoded[i], strlen(encoded[i]), "r");
-        num_table_read(in, &t.x, &t.y, &t.pt_no);
+        num_fnext_table_cc(in, &t.x, &t.y, &t.pt_no);
 
         ck_assert_int_eq(tables[i].pt_no, t.pt_no);
         for (int j = 0; j < t.pt_no; ++j)
@@ -112,8 +112,8 @@ END_TEST
 
 START_TEST(test_num_table_eq)
 {
-    NUMBER x[] = { 0, 1, 2, 3 };
-    NUMBER y[] = { 1, 1, 1, 1 };
+    CC x[] = { 0, 1, 2, 3 };
+    CC y[] = { 1, 1, 1, 1 };
     TABLE table = { 4, x, y };
     TABLE zero = { 0, 0, 0 };
     ck_assert(num_table_eqt(&table, &table));
@@ -121,20 +121,20 @@ START_TEST(test_num_table_eq)
 }
 END_TEST
 
-NUMBER _RETURN_COMPLEX_ONE(NUMBER x)
+CC _RETURN_COMPLEX_ONE(NUMBER x)
 {
-    return (NUMBER) 1 + 0*I;
+    return (CC) 1 + 0*I;
 }
 
-NUMBER _IDENTITY(NUMBER x)
+CC _IDENTITY(NUMBER x)
 {
     return x;
 }
 
 START_TEST(test_num_table_equidist)
 {
-    NUMBER x[] = { 0, 1, 2, 3 };
-    NUMBER y[] = { 1, 1, 1, 1 };
+    CC x[] = { 0, 1, 2, 3 };
+    CC y[] = { 1, 1, 1, 1 };
     TABLE reference = { 4, x, y };
     TABLE t;
     num_table_equidistt(_RETURN_COMPLEX_ONE, x[0], x[3], 4, &t);
@@ -145,8 +145,8 @@ END_TEST
 
 START_TEST(test_num_table_print)
 {
-    NUMBER x[] = { 0, 1, 2, 3 };
-    NUMBER y[] = { 3+I, 2-I, 1, 0 };
+    CC x[] = { 0, 1, 2, 3 };
+    CC y[] = { 3+I, 2-I, 1, 0 };
     size_t pt_no = 4;
 
     char *buff;
@@ -157,7 +157,7 @@ START_TEST(test_num_table_print)
 
     mem = fmemopen(buff, len, "r");
     TABLE decoded;
-    num_table_readt(mem, &decoded);
+    DELETEME(mem, &decoded);
     fclose(mem);
     ck_assert(num_table_eq(x, y, pt_no, decoded.x, decoded.y, decoded.pt_no));
 }
@@ -165,8 +165,8 @@ END_TEST
 
 START_TEST(test_echo_sample_numtable)
 {
-    NUMBER x[] = { 0, 1, 2, 3 };
-    NUMBER y[] = { 3+3*I, 2+2*I, 1+I, 0 };
+    CC x[] = { 0, 1, 2, 3 };
+    CC y[] = { 3+3*I, 2+2*I, 1+I, 0 };
     TABLE table = { 4, x, y };
 
     fputs("SAMPLE NUMGRID:\n", stderr);
@@ -179,14 +179,14 @@ END_TEST
 START_TEST(test_sgetn_list)
 {
     char *input = "0 1i 1+2i 2.5+4i";
-    NUMBER lst[] = { 0, 1*I, 1 + 2*I, 2.5 + 4*I };
+    CC lst[] = { 0, 1*I, 1 + 2*I, 2.5 + 4*I };
     size_t lengths[] = { 1, 3, 5, 7 };
     size_t n = sizeof(lst)/sizeof(*lst);
     size_t len = strlen(input);
     char *s = input;
     for (int i = 0; i < n; ++i)
     {
-        NUMBER x;
+        CC x;
         int read = num_snextn(s, len - (size_t)(s - input), &x);
         ck_assert_int_gt(read, 0);
         fprintf(stderr,"i=%d;x=%Lf+%Lfi;\n", i, REAL(x), IMAG(x));

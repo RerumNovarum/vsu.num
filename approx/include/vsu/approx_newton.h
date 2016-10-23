@@ -5,37 +5,37 @@
 
 typedef struct numvector NEWTON_DDS;
 
-NUMBER
+CC
 newton_eval(
-        NUMBER x,
-        NUMBER const *const grid,
-        NUMBER const *const dds,
+        CC x,
+        CC const *const grid,
+        CC const *const dds,
         size_t pt_no);
-NUMBER
+CC
 newton_evalg(
-        NUMBER X,
+        CC X,
         const NEWTON_DDS dds,
         const TABLE grid);
-NUMBER
+CC
 newton_approx_equidist_kth_dd(
         int k,
-        NUMBER_R h,
-        NUMBER const *const vals,
+        RR h,
+        CC const *const vals,
         size_t pt_no);
 void
 newton_approx_equidist(
-        NUMBER_R a,
-        NUMBER_R b,
-        NUMBER const *const vals,
+        RR a,
+        RR b,
+        CC const *const vals,
         size_t pt_no,
-        NUMBER **out_dds);
+        CC **out_dds);
 
 void
 newton_fill(
-        NUMBER const *const pts,
-        NUMBER const *const dds,
+        CC const *const pts,
+        CC const *const dds,
         size_t dds_pt_no,
-        NUMBER const *const dom,
-        NUMBER **out,
+        CC const *const dom,
+        CC **out,
         size_t pt_no);
 #endif

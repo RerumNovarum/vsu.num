@@ -5,21 +5,21 @@ static char *FORMAT_IMAG = "%12.4Lfi";
 static char *FORMAT_COMPLEX_SUM = "%5.2Lf+%05.2Lfi";
 static char *FORMAT_COMPLEX_DIF = "%6.2Lf%05.2Lfi";
 
-inline NUMBER num_fgetn(FILE *in)
+inline CC num_fgetn(FILE *in)
 {
-    NUMBER x;
+    CC x;
     num_fnextn(in, &x);
     return x;
 }
 
-inline NUMBER num_sgetn(char *str, size_t sz)
+inline CC num_sgetn(char *str, size_t sz)
 {
-    NUMBER x;
+    CC x;
     num_snextn(str, sz, &x);
     return x;
 }
 
-int num_snextn(char *str, size_t sz, NUMBER *result)
+int num_snextn(char *str, size_t sz, CC *result)
 {
     FILE *in = fmemopen(str, sz, "r");
     int i = num_fnextn(in, result);
@@ -43,12 +43,12 @@ static inline bool isdelimiter(char c)
     return c == ',' || isspace(c);
 }
 
-int num_fnextn(FILE *in, NUMBER *result)
+int num_fnextn(FILE *in, CC *result)
 {
     /* parse complex numbers
      * encoded as a string of a strict form;
      * (originally)
-     * three forms of a NUMBER are allowed
+     * three forms of a CC are allowed
      * (denoted as regex, as forward slashes suggest):
      * /-?[0-9]*\.[0-9]+/
      * /-?[0-9]*\.[0-9]+i/
@@ -63,15 +63,15 @@ int num_fnextn(FILE *in, NUMBER *result)
      * and long sums are allowed;
      *
      * TODO: constrains
-     * TODO: do you ever need number of bytes read? just return a NUMBER;
+     * TODO: do you ever need number of bytes read? just return a CC;
      */
 
-    const NUMBER_R BASE  = 10;
+    const RR BASE  = 10;
 
     enum num_fnextn_state state = STATE_PREINIT;
-    NUMBER_R order = 1.0;
-    NUMBER_R sign = 1.0;
-    NUMBER_R x = 0.0;
+    RR order = 1.0;
+    RR sign = 1.0;
+    RR x = 0.0;
     int i = 0;
 
     flockfile(in);
@@ -158,7 +158,7 @@ int num_fnextn(FILE *in, NUMBER *result)
                 } else if (isdigit(c))
                 {
                     cur_empty = false;
-                    NUMBER_R digit = (NUMBER_R) (c - '0');
+                    RR digit = (CC_R) (c - '0');
                     x *= BASE;
                     x += digit;
                 } else
@@ -182,7 +182,7 @@ int num_fnextn(FILE *in, NUMBER *result)
                 } else if (isdigit(c))
                 {
                     cur_empty = false;
-                    NUMBER_R digit = (NUMBER_R) (c - '0');
+                    RR digit = (CC_R) (c - '0');
                     order /= BASE;
                     x += order * digit;
                 } else
@@ -207,10 +207,10 @@ int num_fnextn(FILE *in, NUMBER *result)
     return i-1; /* -1 excludes closing EOF or space */
 }
 
-int num_fputn(NUMBER num, FILE *out)
+int num_fputn(CC num, FILE *out)
 {
-    NUMBER_R real = REAL(num);
-    NUMBER_R imag = IMAG(num);
+    RR real = REAL(num);
+    RR imag = IMAG(num);
     if (imag == 0)
     {
         return fprintf(out, FORMAT_REAL, real);
@@ -229,7 +229,7 @@ int num_fputn(NUMBER num, FILE *out)
     }
 }
 
-int num_ntos(NUMBER num, char **deststr, size_t *len)
+int num_ntos(CC num, char **deststr, size_t *len)
 {
     FILE *out = open_memstream(deststr, len);
     int bytes_no = num_fputn(num, out);
@@ -237,9 +237,9 @@ int num_ntos(NUMBER num, char **deststr, size_t *len)
     return bytes_no;
 }
 
-bool num_eq(NUMBER a, NUMBER b, NUMBER_R eps)
+bool num_eq(CC a, NUMBER b, RR eps)
 {
-    NUMBER d = b-a;
+    CC d = b-a;
     /* return cabsl(d) < eps; */
     if (REAL(d) >= eps) return false;
     if (IMAG(d) >= eps) return false;
@@ -247,11 +247,11 @@ bool num_eq(NUMBER a, NUMBER b, NUMBER_R eps)
 }
 
 void 
-num_table_read(FILE *in, NUMBER **x, NUMBER **y, size_t *n)
+num_fnext_table_cc(FILE *in, CC **x, NUMBER **y, size_t *n)
 {
     fscanf(in, "%zu", n);
-    *x = malloc((*n)*sizeof(NUMBER));
-    *y = malloc((*n)*sizeof(NUMBER));
+    *x = malloc((*n)*sizeof(CC));
+    *y = malloc((*n)*sizeof(CC));
 
     for (int i = 0; i < *n; ++i) {
         num_fnextn(in, (*x)+i);
@@ -262,19 +262,19 @@ num_table_read(FILE *in, NUMBER **x, NUMBER **y, size_t *n)
 }
 
 void 
-num_table_readt(FILE *in, TABLE *t)
+DELETEME(FILE *in, TABLE *t)
 {
-    num_table_read(in, &(t->x), &(t->y), &(t->pt_no));
+    num_fnext_table_cc(in, &(t->x), &(t->y), &(t->pt_no));
 }
 
 void
 num_fill_vals(
-        NUM_TO_NUM f,
-        NUMBER *dom,
+        CC_TO_CC f,
+        CC *dom,
         size_t n,
-        NUMBER **out)
+        CC **out)
 {
-    *out = malloc(n * sizeof(NUMBER));
+    *out = malloc(n * sizeof(CC));
     for (int i = 0; i < (n); ++i)
     {
         (*out)[i] = (*f)(dom[i]);
@@ -283,12 +283,12 @@ num_fill_vals(
 
 void
 num_fill_vals_r(
-        NUMR_TO_NUMR f,
-        NUMBER_R *dom,
+        RR_TO_RR f,
+        RR *dom,
         size_t n,
-        NUMBER_R **out)
+        RR **out)
 {
-    *out = malloc(n * sizeof(NUMBER_R));
+    *out = malloc(n * sizeof(RR));
     for (int i = 0; i < (n); ++i)
     {
         (*out)[i] = (*f)(dom[i]);
@@ -297,12 +297,12 @@ num_fill_vals_r(
 
 void
 num_fill_vals_frproj(
-        NUM_TO_NUM f,
-        NUMBER_R *dom,
+        CC_TO_CC f,
+        RR *dom,
         size_t n,
-        NUMBER_R **out)
+        RR **out)
 {
-    *out = malloc(n * sizeof(NUMBER_R));
+    *out = malloc(n * sizeof(RR));
     for (int i = 0; i < (n); ++i)
     {
         (*out)[i] = REAL((*f)(dom[i]));
@@ -329,44 +329,44 @@ num_fill_vals_frproj(
     
 
 void
-num_grid_equidist(
-        NUMBER a,
-        NUMBER b,
+num_grid_gen_eqdst_cc(
+        CC a,
+        CC b,
         size_t n,
-        NUMBER **row)
+        CC **row)
 {
-    NUM_GRID_EQUIDIST(a, b, n, *row, NUMBER);
+    NUM_GRID_EQUIDIST(a, b, n, *row, CC);
 }
 
 void
-num_grid_equidist_r(
-        NUMBER_R a,
-        NUMBER_R b,
+num_grid_gen_eqdst_rr(
+        RR a,
+        RR b,
         size_t n,
-        NUMBER_R **row)
+        RR **row)
 {
-    NUM_GRID_EQUIDIST(a, b, n, *row, NUMBER_R);
+    NUM_GRID_EQUIDIST(a, b, n, *row, RR);
 }
 
 void
  num_table_equidist(
-        NUMBER (*f)(NUMBER x),
-        NUMBER a,
-        NUMBER b,
+        CC (*f)(NUMBER x),
+        CC a,
+        CC b,
         size_t n,
-        NUMBER **x,
-        NUMBER **y)
+        CC **x,
+        CC **y)
 {
-    num_grid_equidist(a, b, n, x);
-    *y = malloc(n * sizeof(NUMBER));
+    num_grid_gen_eqdst_cc(a, b, n, x);
+    *y = malloc(n * sizeof(CC));
     num_fill_vals(f, *x, n, y);
 }
 
 void
 num_table_equidistt(
-        NUMBER (*f)(NUMBER x),
-        NUMBER a,
-        NUMBER b,
+        CC (*f)(NUMBER x),
+        CC a,
+        CC b,
         size_t n,
         TABLE *table)
 {
@@ -376,8 +376,8 @@ num_table_equidistt(
 
 void
 num_table_print(
-        const NUMBER *x,
-        const NUMBER *y,
+        const CC *x,
+        const CC *y,
         size_t n,
         bool pretty,
         FILE *out)
@@ -425,11 +425,11 @@ num_table_printt(
 }
 
 bool num_table_eq(
-        const NUMBER *x1,
-        const NUMBER *y1,
+        const CC *x1,
+        const CC *y1,
         size_t n1,
-        const NUMBER *x2,
-        const NUMBER *y2,
+        const CC *x2,
+        const CC *y2,
         size_t n2)
 {
     if (n1 != n2) return false;
@@ -451,25 +451,25 @@ num_table_eqt(
             t2->x, t2->y, t2->pt_no);
 }
 
-NUMBER NUM_ZERO(NUMBER x)
+CC NUM_ZERO(NUMBER x)
 {
-    return (NUMBER) 0;
+    return (CC) 0;
 }
-NUMBER NUM_IDENTITY(NUMBER x)
+CC NUM_IDENTITY(NUMBER x)
 {
     return x;
 }
-NUMBER NUM_SQR(NUMBER x)
+CC NUM_SQR(NUMBER x)
 {
     return x*x;
 }
 
-NUMBER_R num_max_deviation(NUMBER *X, NUMBER *Y, size_t pt_no)
+RR num_max_deviation(CC *X, NUMBER *Y, size_t pt_no)
 {
-    NUMBER_R max = -INFINITY;
+    RR max = -INFINITY;
     for (int i = 0; i < pt_no; ++i)
     {
-        NUMBER_R d = ABS(X[i] - Y[i]);
+        RR d = ABS(X[i] - Y[i]);
         max = fmaxl(max, d);
     }
     return max;

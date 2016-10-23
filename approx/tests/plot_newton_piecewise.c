@@ -3,8 +3,8 @@
 #include "vsu/num.h"
 #include "vsu/plot.h"
 
-NUMBER
-_num_01x_else_1_sub_xSqr(NUMBER x)
+CC
+_num_01x_else_1_sub_xSqr(CC x)
 {
     if (ABS(x) < 1) return x;
     return 1 - x*x;

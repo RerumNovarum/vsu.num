@@ -48,14 +48,14 @@ static struct argp_option options[] = {
     { "print", O_PRINT, 0, 0, "Print table" },
     { "width", O_WIDTH, "INTEGER", 0, "Output image width" },
     { "height", O_HEIGHT, "INTEGER", 0, "Output image height" },
-    { "y_min", O_Y_MIN, "NUMBER", 0,
+    { "y_min", O_Y_MIN, "CC", 0,
         "Defines lower bound of range to be drawn; "
             "Defaults to 0"},
-    { "y_max", O_Y_MAX, "NUMBER", 0,
+    { "y_max", O_Y_MAX, "CC", 0,
         "Defines upper bound of range to be drawn; "
         "Defaults to 1" },
-    { "x_min", O_X_MIN, "NUMBER", 0, "Left bound of domain [a,b]; Defaults to 0" },
-    { "x_max", O_X_MAX, "NUMBER", 0, "Right bound of domain [a,b]; Defaults to 1" },
+    { "x_min", O_X_MIN, "CC", 0, "Left bound of domain [a,b]; Defaults to 0" },
+    { "x_max", O_X_MAX, "CC", 0, "Right bound of domain [a,b]; Defaults to 1" },
     { "func", O_FUNC, "FUNCTION_NAME", 0, "Function to be examined" },
     { "pt_no", O_PT_NO, "UNSIGNED", 0, "Number of points" },
     { "plt_pt_no", O_PLT_PT_NO, "UNSIGNED", 0,
@@ -78,19 +78,19 @@ static struct argp_option options[] = {
     { 0 }
 };
 
-NUMBER  _num_log_re(NUMBER x)
+CC  _num_log_re(NUMBER x)
 {
     return logl(REAL(x));
 }
 
-NUMBER  _num_random(NUMBER x)
+CC  _num_random(NUMBER x)
 {
 	return rand()*1.0/RAND_MAX;
 }
 
-NUMBER _num_poly_4(NUMBER x)
+CC _num_poly_4(NUMBER x)
 {
-	NUMBER x2 = x*x;
+	CC x2 = x*x;
 	return 1 + x2*(-10 + x2);
 }
 
@@ -98,7 +98,7 @@ static struct
 {
     char * name;
     size_t name_len;
-    NUM_TO_NUM func;
+    CC_TO_CC func;
 } functions[] =
 {
     /* lexicographically ordered */
@@ -111,7 +111,7 @@ static struct
 	{ "random", 6, _num_random }
 };
 
-static NUM_TO_NUM function_by_name(char *name, size_t len)
+static CC_TO_CC function_by_name(char *name, size_t len)
 {
     /* TODO: binary search it */
     size_t f_no = sizeof(functions)/sizeof(*functions);
@@ -130,14 +130,14 @@ struct arguments
 {
     char *input_fname;
     char *output_fname;
-    NUM_TO_NUM func;
+    CC_TO_CC func;
     size_t width, height;
-    NUMBER_R a, b;  /* function domain [a,b] */
-    NUMBER *grid;
-    NUMBER *vals;
-    NUMBER_R *pltgrid;
-    NUMBER_R y_min, y_max;
-    NUMBER *dds;
+    RR a, b;  /* function domain [a,b] */
+    CC *grid;
+    CC *vals;
+    RR *pltgrid;
+    RR y_min, y_max;
+    CC *dds;
     bool dds_pending;
     size_t pt_no;
     size_t plt_pt_no;
@@ -166,7 +166,7 @@ static compute_pendings(struct arguments *args)
             free(args->grid);
             args->grid = NULL;
         }
-        num_grid_equidist(args->a, args->b, args->pt_no, &(args->grid));
+        num_grid_gen_eqdst_cc(args->a, args->b, args->pt_no, &(args->grid));
         if (args->vals_pending)
         {
             if (args->vals != NULL)
@@ -211,7 +211,7 @@ static compute_pendings_plt(struct arguments *args)
             free(args->pltgrid);
 			args->pltgrid = NULL;
         }
-        num_grid_equidist_r(args->a, args->b, args->plt_pt_no, &(args->pltgrid));
+        num_grid_gen_eqdst_rr(args->a, args->b, args->plt_pt_no, &(args->pltgrid));
     }
     args->pltgrid_pending = false;
     args->cairo_pending = false;
@@ -280,7 +280,7 @@ parse_opt(int key, char *arg, struct argp_state *state)
 			{
 				char *a = arg;
 				size_t len = strlen(arg);
-				NUMBER z;
+				CC z;
 				int read = num_snextn(a, len, &z);
 				a += read;
 				len -= read;
@@ -296,7 +296,7 @@ parse_opt(int key, char *arg, struct argp_state *state)
 			{
 				char *a = arg;
 				size_t len = strlen(arg);
-				NUMBER z;
+				CC z;
 				int read = num_snextn(a, len, &z);
 				a += read;
 				len -= read;
@@ -345,7 +345,7 @@ parse_opt(int key, char *arg, struct argp_state *state)
 				args->write_pending = true;
 				cairo_set_source_rgb(args->cr, 0, 0xff, 0);
 				cairo_set_line_width(args->cr, args->linewidth);
-				NUMBER_R *pltvals;
+				RR *pltvals;
 				num_fill_vals_frproj(args->func, args->pltgrid, args->plt_pt_no, &(pltvals));
 				num_cairo_plot(
 						args->cr,
@@ -364,7 +364,7 @@ parse_opt(int key, char *arg, struct argp_state *state)
 				args->write_pending = true;
 				cairo_set_source_rgb(args->cr, 0xff, 0, 0);
 				cairo_set_line_width(args->cr, args->linewidth);
-				NUMBER_R *pltvals = malloc(sizeof(NUMBER_R) * args->plt_pt_no);;
+				RR *pltvals = malloc(sizeof(CC_R) * args->plt_pt_no);;
 				for (int i = 0; i < args->plt_pt_no; ++i)
 				{
 					pltvals[i] = REAL(newton_eval(args->pltgrid[i], args->grid, args->dds, args->pt_no));
@@ -388,15 +388,15 @@ parse_opt(int key, char *arg, struct argp_state *state)
 			compute_pendings(args);
             compute_pendings_dds(args);
             size_t err_pt_no = (size_t) REAL(num_sgetn(arg, strlen(arg)));
-            NUMBER *grid;
-            NUMBER *expected;
-            NUMBER *result;
-            num_grid_equidist(args->a, args->b, err_pt_no, &grid);
+            CC *grid;
+            CC *expected;
+            CC *result;
+            num_grid_gen_eqdst_cc(args->a, args->b, err_pt_no, &grid);
             num_fill_vals(args->func, grid, err_pt_no, &expected);
             newton_fill(
                     args->grid, args->dds, args->pt_no,
                     grid, &result, err_pt_no);
-            NUMBER_R dev = num_max_deviation(expected, result, err_pt_no);
+            RR dev = num_max_deviation(expected, result, err_pt_no);
             free(grid);
             free(expected);
             free(result);

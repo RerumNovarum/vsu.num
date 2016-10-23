@@ -2,17 +2,17 @@
 
 #include "vsu/approx_newton.h"
 
-NUMBER
+CC
 newton_approx_equidist_kth_dd(
         int k,
-        NUMBER_R h,
-        NUMBER const *const vals,
+        RR h,
+        CC const *const vals,
         size_t pt_no)
 {
-    NUMBER dd = 0;
+    CC dd = 0;
     for (int i = 0; i <= k; ++i)
     {
-        NUMBER term = vals[i];
+        CC term = vals[i];
         for (int j = 2; j <= i; ++j)
             term /= j;
         for (int j = 2; j <= (k-i); ++j)
@@ -28,14 +28,14 @@ newton_approx_equidist_kth_dd(
 
 void
 newton_approx_equidist(
-        NUMBER_R a,
-        NUMBER_R b,
-        NUMBER const *const vals,
+        RR a,
+        RR b,
+        CC const *const vals,
         size_t pt_no,
-        NUMBER **out_dds)
+        CC **out_dds)
 {
-    *out_dds = malloc(sizeof(NUMBER) * pt_no);
-    NUMBER_R h = (b - a);
+    *out_dds = malloc(sizeof(CC) * pt_no);
+    RR h = (b - a);
     if (pt_no > 1) h /= (pt_no-1);
     else h = 0;
     for (int k = 0; k < pt_no; ++k)
