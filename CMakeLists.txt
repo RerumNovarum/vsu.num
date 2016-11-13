@@ -4,7 +4,7 @@ project(vsunum)
 find_package(PkgConfig)
 
 find_library(M_LIBRARY m)
-set(vsunum_SRC include/vsu/num.h src/num.c src/num-numbers.c)
+set(vsunum_SRC include/vsu/num.h src/num.c src/num-numbers.c src/affine2.c)
 add_library(vsunum STATIC ${vsunum_SRC})
 target_include_directories(vsunum PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -13,11 +13,16 @@ target_link_libraries(vsunum ${M_LIBRARY})
 
 install(TARGETS vsunum EXPORT vsunum-config DESTINATION lib)
 install(EXPORT vsunum-config DESTINATION share/libvsu/)
-install(DIRECTORY include DESTINATION include)
+install(DIRECTORY include DESTINATION ${CMAKE_INSTALL_PREFIX})
 
 enable_testing()
+
 add_executable(test_numbers tests/test_numbers.c)
 target_link_libraries(test_numbers vsunum)
 add_test(test_numbers test_numbers)
 
-pkg_check_modules(CHECK REQUIRED check)
+add_executable(test_affine2 tests/test_affine2.c)
+target_link_libraries(test_affine2 vsunum)
+add_test(test_affine2 test_affine2)
+
+# pkg_check_modules(CHECK REQUIRED check)

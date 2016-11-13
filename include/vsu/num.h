@@ -153,4 +153,54 @@ CC
 NUM_IDENTITY_CC(CC x);
 CC
 NUM_SQR_CC(CC x);
-#endif
+
+/* affine transformations */
+
+struct affine2
+{
+    RR a11;
+    RR a12;
+    RR a21;
+    RR a22;
+    RR b1;
+    RR b2;
+    RR alpha;
+};
+
+struct vec2hom
+{
+    RR x, y, alpha;
+};
+struct vec2rr
+{
+    RR x, y;
+};
+
+#define AFFINE2_ID \
+    ((struct affine2){ 1, 0, 0, 1, 0, 0, 1 })
+
+void
+affine2hom(struct affine2, RR *x, RR *y, RR *alpha);
+
+struct vec2rr
+affine2rr_immut(struct affine2, struct vec2rr);
+
+void
+affine2rr(struct affine2, RR *x, RR *y);
+
+struct affine2
+affine2mul(struct affine2 A, struct affine2 B);
+
+struct affine2
+affine2mul_n(size_t n, struct affine2 sentinel, ...);
+
+struct affine2
+affine2rot(RR phi);
+
+struct affine2
+affine2tr(RR x, RR y);
+
+struct affine2
+affine2scale(RR x, RR y);
+
+#endif /* ifdef _VSU_NUM_H_ */
