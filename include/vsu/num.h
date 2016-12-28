@@ -203,4 +203,8 @@ affine2tr(RR x, RR y);
 struct affine2
 affine2scale(RR x, RR y);
 
+/* Common equations solution methods */
+
+RR root_secant_method(RR_TO_RR f, RR x0, RR x1);
+
 #endif /* ifdef _VSU_NUM_H_ */
