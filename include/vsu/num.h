@@ -1,7 +1,7 @@
 #ifndef _VSU_NUM_H_
 #define _VSU_NUM_H_
 
-#include <stdio.h>
+#include <stdio.h> /* FILE &c */
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdbool.h>

@@ -1,4 +1,6 @@
+#define _GNU_SOURCE
 #include <vsu/num.h>
+#include <stdio.h>
 
 void inline static
 _num_fput_table_cc(
