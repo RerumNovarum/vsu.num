@@ -4,7 +4,7 @@ project(vsunum)
 find_package(PkgConfig)
 
 find_library(M_LIBRARY m)
-set(vsunum_SRC include/vsu/num.h src/num.c src/num-numbers.c src/affine2.c src/secant-method.c)
+set(vsunum_SRC include/vsu/num.h src/num.c src/num-numbers.c src/affine2.c src/secant-method.c src/liblinsolve.c)
 add_library(vsunum STATIC ${vsunum_SRC})
 target_include_directories(vsunum PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -13,15 +13,9 @@ target_link_libraries(vsunum ${M_LIBRARY})
 
 install(TARGETS vsunum EXPORT vsunum-config DESTINATION lib)
 
-add_library(liblinsolve STATIC src/liblinsolve.c)
-target_include_directories(liblinsolve PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>)
-
 add_executable(linsolve src/linsolve.c)
-target_link_libraries(linsolve liblinsolve)
+target_link_libraries(linsolve vsunum)
 
-install(TARGETS liblinsolve EXPORT vsunum-config DESTINATION lib)
 install(TARGETS linsolve DESTINATION bin)
 
 install(EXPORT vsunum-config DESTINATION share/libvsu/)
