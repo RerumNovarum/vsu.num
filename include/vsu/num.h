@@ -203,6 +203,47 @@ affine2tr(RR x, RR y);
 struct affine2
 affine2scale(RR x, RR y);
 
+/* affine transformations in RR^3 */
+
+struct affine3
+{
+    RR a11, a12, a13,
+       a21, a22, a23,
+       a31, a32, a33;
+    RR b1, b2, b3;
+    RR alpha;
+};
+
+struct affine3
+affine3mul(struct affine3 T1, struct affine3 T2);
+
+struct affine3
+affine3mul_n(size_t n, struct affine3 T1, ...);
+
+void
+affine3apply_rr(struct affine3 T, RR *X, RR *Y, RR *Z);
+
+#define AFFINE3_ID \
+    ((struct affine3){ .a11=1, .a12=0, .a13=0, .b1=0, \
+                       .a21=0, .a22=1, .a23=0, .b2=0, \
+                       .a31=0, .a32=0, .a33=1, .b3=0, \
+                                               .alpha=1})
+
+struct affine3
+affine3rotx(RR phi);
+
+struct affine3
+affine3roty(RR phi);
+
+struct affine3
+affine3rotz(RR phi);
+
+struct affine3
+affine3scale(RR x, RR y, RR z);
+
+struct affine3
+affine3tr(RR x, RR y, RR z);
+
 /* Spline interpolation */
 
 

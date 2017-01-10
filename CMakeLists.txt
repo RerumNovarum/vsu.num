@@ -4,7 +4,7 @@ project(vsunum)
 find_package(PkgConfig)
 
 find_library(M_LIBRARY m)
-set(vsunum_SRC include/vsu/num.h src/num.c src/num-numbers.c src/affine2.c src/secant-method.c src/liblinsolve.c)
+set(vsunum_SRC include/vsu/num.h src/num.c src/num-numbers.c src/affine2.c src/secant-method.c src/liblinsolve.c src/affine3.c)
 add_library(vsunum STATIC ${vsunum_SRC})
 target_include_directories(vsunum PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -31,6 +31,10 @@ add_test(test_numbers test_numbers)
 add_executable(test_affine2 tests/test_affine2.c)
 target_link_libraries(test_affine2 vsunum)
 add_test(test_affine2 test_affine2)
+
+add_executable(test_affine3 tests/test_affine3.c)
+target_link_libraries(test_affine3 vsunum)
+add_test(test_affine3 test_affine3)
 
 add_executable(test_secant tests/secant-method.c)
 target_link_libraries(test_secant vsunum)
