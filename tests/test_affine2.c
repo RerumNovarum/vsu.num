@@ -46,10 +46,10 @@ test_composition2(char *tcase_name, struct affine2 A, struct affine2 B, RR X, RR
     }
 
     RR x0 = X, y0 = Y;
-    affine2rr(B, &x0, &y0);
-    affine2rr(A, &x0, &y0);
+    affine2apply_rr(B, &x0, &y0);
+    affine2apply_rr(A, &x0, &y0);
     RR x1 = X, y1 = Y;
-    affine2rr(T, &x1, &y1);
+    affine2apply_rr(T, &x1, &y1);
     if (fabsl(x0 - x1) > 1e-9)
     {
         ret = 1;
@@ -72,7 +72,7 @@ int main()
     struct affine2 mirror_x = affine2scale(-1, 1);
 
     RR x = 1, y = 1;
-    affine2rr(rot_pi_2, &x, &y);
+    affine2apply_rr(rot_pi_2, &x, &y);
     if (fabsl(x - (-1)) > 1e-9)
     {
         printf("rot pi/2 failed: x=%Lf\n", x);

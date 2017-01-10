@@ -2,7 +2,7 @@
 #include <stdarg.h>
 
 void
-affine2hom(struct affine2 T, RR *X, RR *Y, RR *ALPHA)
+affine2apply_hom(struct affine2 T, RR *X, RR *Y, RR *ALPHA)
 {
     RR x = *X, y = *Y, alpha = *ALPHA;
     *X = T.a11*x + T.a12*y + T.b1;
@@ -11,7 +11,7 @@ affine2hom(struct affine2 T, RR *X, RR *Y, RR *ALPHA)
 }
 
 struct vec2rr
-affine2rr_immut(struct affine2 T, struct vec2rr v)
+affine2apply_rr_immut(struct affine2 T, struct vec2rr v)
 {
     RR x = v.x, y = v.y;
     v.x = (T.a11*x + T.a12*y + T.b1)/T.alpha;
@@ -20,7 +20,7 @@ affine2rr_immut(struct affine2 T, struct vec2rr v)
 }
 
 void
-affine2rr(struct affine2 T, RR *X, RR *Y)
+affine2apply_rr(struct affine2 T, RR *X, RR *Y)
 {
     RR x = *X, y = *Y;
     *X = (T.a11*x + T.a12*y + T.b1)/T.alpha;

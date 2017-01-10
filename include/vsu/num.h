@@ -180,13 +180,13 @@ struct vec2rr
     ((struct affine2){ 1, 0, 0, 1, 0, 0, 1 })
 
 void
-affine2hom(struct affine2, RR *x, RR *y, RR *alpha);
+affine2apply_hom(struct affine2, RR *x, RR *y, RR *alpha);
 
 struct vec2rr
-affine2rr_immut(struct affine2, struct vec2rr);
+affine2apply_rr_immut(struct affine2, struct vec2rr);
 
 void
-affine2rr(struct affine2, RR *x, RR *y);
+affine2apply_rr(struct affine2, RR *x, RR *y);
 
 struct affine2
 affine2mul(struct affine2 A, struct affine2 B);
