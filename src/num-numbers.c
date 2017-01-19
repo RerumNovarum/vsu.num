@@ -67,11 +67,13 @@ int num_fnextr_unlocked(FILE *f, RR *res)
         switch (state)
         {
             case INIT:
-                if (isdelimiter(d) || d == '+')
+                if (isdelimiter(d)) {
+                }
+                else if (d == '+')
                 {
                     state = INT;
                 }
-                if (d == '-')
+                else if (d == '-')
                 {
                     sign = -1.0;
                     state = INT;

@@ -4,7 +4,11 @@ project(vsunum)
 find_package(PkgConfig)
 
 find_library(M_LIBRARY m)
-set(vsunum_SRC include/vsu/num.h src/num.c src/num-numbers.c src/affine2.c src/secant-method.c src/liblinsolve.c src/affine3.c)
+set(vsunum_SRC include/vsu/num.h src/num.c src/num-numbers.c
+               src/affine2.c src/affine3.c
+               src/secant-method.c src/liblinsolve.c
+               src/libtridiagsolve.c
+               src/splines.c)
 add_library(vsunum STATIC ${vsunum_SRC})
 target_include_directories(vsunum PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -15,6 +19,9 @@ install(TARGETS vsunum EXPORT vsunum-config DESTINATION lib)
 
 add_executable(linsolve src/linsolve.c)
 target_link_libraries(linsolve vsunum)
+
+add_executable(splines src/splines-client.c)
+target_link_libraries(splines vsunum)
 
 install(TARGETS linsolve DESTINATION bin)
 
@@ -39,4 +46,8 @@ add_test(test_affine3 test_affine3)
 add_executable(test_secant tests/secant-method.c)
 target_link_libraries(test_secant vsunum)
 add_test(test_secant test_secant)
+
+add_executable(test_tridiag tests/libtridiagsolve.c)
+target_link_libraries(test_tridiag vsunum)
+add_test(test_tridiag test_tridiag)
 # pkg_check_modules(CHECK REQUIRED check)

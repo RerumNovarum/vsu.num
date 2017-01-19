@@ -8,9 +8,6 @@
 #define LINSOLVE_SUCCESS 0
 #define LINSOLVE_DEGENERATE 1
 
-typedef double T;
-#define TFORMAT "%f"
-
 /* GAUSSIAN ELIMINATION */
 
 struct lin_eqn
@@ -21,10 +18,11 @@ struct lin_eqn
     /* matrix is represented as
      * an array of rows (allows fastest swapping)
      */
-    T **A;
+    RR **A;
 
-    T *b; /* values vector */
-    T *x; /* after system's solved, `x` points to an answer */
+    RR *b; /* values vector */
+    RR *x; /* once system's solved, `x` points to an answer */
+    
 
     /* permutation; initialized with [1, ..., n] */
     /* unnecessary? */
@@ -39,38 +37,46 @@ struct lin_eqn
     size_t n; /* dimension of matrix */
 };
 
-static inline T
-tabs(T t)
+typedef struct lin_eqn * lin_eqn_ptr;
+
+static inline RR
+tabs(RR t)
 {
     if (t < 0)
         return -t;
     return t;
 }
 
-void
-lin_eqn_init(struct lin_eqn *eq, size_t n);
+lin_eqn_ptr
+lin_eqn_alloc(size_t n);
 
 int
-lin_bck_sweep(struct lin_eqn *eq);
+lin_bck_sweep(lin_eqn_ptr eq);
 
 int
-lin_fwd_sweep(struct lin_eqn *eq);
+lin_fwd_sweep(lin_eqn_ptr eq);
 
 int
-linsolve(struct lin_eqn *eq);
+linsolve(lin_eqn_ptr eq);
 
 /* TRIDIAGONAL */
 /* a_i x_{i-1} + b_i x_i + c_i x_{i+1} = f_i */
 struct tridiag_eqn
 {
-    RR a, b, c, f;
-    RR x;
+    RR *a, *b, *c, *f;
+    RR *x;
+    size_t n;
 };
 
-int
-tridiag_eqn_init(struct tridiag_eqn *eq, size_t n);
+typedef struct tridiag_eqn * tridiag_eqn_ptr;
+
+tridiag_eqn_ptr
+tridiag_eqn_alloc(size_t n);
 
 int
-tridiag_eqn_solve(struct tridiag_eqn *eq);
+tridiag_eqn_solve(tridiag_eqn_ptr eq);
+
+void
+tridiag_eqn_init(tridiag_eqn_ptr eq);
 
 #endif

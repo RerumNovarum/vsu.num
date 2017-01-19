@@ -27,7 +27,7 @@ count_numbers(char *line)
 }
 
 static inline size_t
-read_vector(char *line, size_t n, double *out)
+read_vector(char *line, size_t n, RR *out)
 {
     if (line == NULL)
         return 0;
@@ -57,20 +57,19 @@ solve_file(char *file)
     getline(&line, &len, f);
 
     size_t n = count_numbers(line);
-    struct lin_eqn eq;
-    lin_eqn_init(&eq, n);
+    lin_eqn_ptr eq = lin_eqn_alloc(n);
     for (int i = 0; i < n; ++i) {
-        read_vector(line, n, eq.A[i]);
+        read_vector(line, n, eq->A[i]);
         free(line);
         line = NULL;
         len = 0;
         getline(&line, &len, f);
     }
-    read_vector(line, n, eq.b);
+    read_vector(line, n, eq->b);
     free(line);
     fclose(f);
 
-    linsolve(&eq);
+    linsolve(eq);
     size_t origlen = strlen(file);
     char *solfile = alloca(origlen + 5);
     strcpy(solfile, file);
@@ -78,9 +77,9 @@ solve_file(char *file)
 
     f = fopen(solfile, "w");
     for (int i = 0; i < (n-1); ++i) {
-            fprintf(f, TFORMAT " ", eq.x[i]);
+            fprintf(f, "%Lf ", eq->x[i]);
     }
-    fprintf(f, TFORMAT "\n", eq.x[n-1]);
+    fprintf(f, "%Lf" "\n", eq->x[n-1]);
     fclose(f);
 }
 

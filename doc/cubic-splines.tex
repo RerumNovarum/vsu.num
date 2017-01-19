@@ -1,0 +1,74 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+\title{Cubic splines}
+\author{Sergey Kozlukov}
+
+\begin{document}
+\maketitle
+
+\section{Problem}
+The problem is that of interpolation with a smooth function
+which is piecewise cubic polynomial.
+Specifically,
+given a table \( \{ (x_i, f_i); i=\overline{0,N} \} \)
+of values \( f_i \) of a function at points \( x_i \) of a grid,
+the task is to produce a smooth function \( s:\left[x_0,x_N\right]\to\mathbb{R} \)
+satisfying the interpolation criteria
+\[ s(x_i) = f_i, \]
+such that
+\( s(x)=s_i(x) \text{ if } x\in\left[x_i, x_{i+1}\right], \)
+where \( s_i:\left[x_i, x_{i+1}\right]\to\mathbb{R} \), \( i=\overline{0,N-1} \)
+are cubic polynomials:
+\[ s_i(x) = a_i + b_i (x-x_i) + \frac12 c_i (x-x_i)^2 + \frac16 d_i (x-x_i)^3, \]
+which coincide at shared knots up to second derivative:.
+\begin{equation}\label{eq:f_i}
+    s_i(x_i) = f_i, s_i(x_{i+1}) = f_{i+1}, \text{ for } i=\overline{0,N-1},
+\end{equation}
+\begin{equation}\label{eq:df_i}
+ s_i'(x_{i+1}) = s_{i+1}'(x_{i+1}), i=\overline{0,N},
+\end{equation}
+\begin{equation}\label{eq:d2f_i}
+ s_i''(x_{i+1}) = s_{i+1}''(x_{i+1}), i=\overline{0,N}.
+\end{equation}
+
+That gives us \( 4N-2 \) (independent as turns out later) linear equations for coefficients of polynomials.
+To get the last two needed equations
+one might require e.g. some boundary constraints.
+In this note we'll consider the "clampsed" cubic splines
+in which the first derivatives at the boundary are given:
+\begin{equation}\label{eq:boundary}
+   s_0'(x_0) = f_0',\quad s_{N-1}'(x_N) = f_N'.
+\end{equation}
+
+\section{Reduction}
+Equations \eqref{eq:f_i}~-~\eqref{eq:boundary} can be rewritten as
+\begin{align*}
+     & a_i = f_i, \quad i=\overline{0,N-1}, \\
+     & h_i b_i + \frac12 h_i^2 c_i + \frac16 h_i^3 d_i = f_{i+1} - f_i, \quad i=\overline{0,N-2}, \\
+     & b_i + h_i c_i + \frac12 h_i^2 d_i = b_{i+1}, \quad i=\overline{0,N-2}, \\
+     & c_i + h_i d_i = c_{i+1} \\
+     & \text{where } h_i = x_{i+1} - x_i, \quad i = \overline{0, N-2}, \\
+     & b_0 = f'(x_0), \\
+     & b_{N-1} + h_{N-1} c_{N-1} + \frac12 h_{N-1}^2 d_{N-1} = f'(x_N). \\
+\end{align*}
+Now we can express coefficients \( \{b_i\}, \{d_i\} \) in terms of \( \{c_i\} \)
+which in turn can be derived from from a tridiagonal linear system:
+\begin{align*}
+    & a_i = f_i, \quad i=\overline{0,N-1}, \\
+    & d_i = \frac{c_{i+1}-c_i}{h_i}, \quad i=\overline{0,N-2}, \\
+    & b_i = \frac{f_{i+1}-f_i}{h_i} - \frac13h_i(c_i + \frac12 c_{i+1}), \quad i=\overline{0,N-2}, \\
+    & \frac16 h_i c_i + \frac13 (h_i + h_{i+1}) c_{i+1} + \frac16 h_{i+1} c_{i+2} = \frac{f_{i+2}-f_{i+1}}{h_{i+1}} - \frac{f_{i+1}-f_i}{h_i},
+        \quad i=\overline{0,N-3}, \\
+    & b_{N-1} = b_{N-2} + h_{N-2} c_{N-2} + \frac12 h_{N-2}^2 d_{N-2}, \\
+    & d_{N-1} = \frac{6}{h_{N-1}^3}(f_N - f_{N-1} - h_{N-1} b_{N-1} - \frac12 h_{N-1}^2 c_{N-1}), \\
+    & \text{from boundary conditions:} \\
+    & a_0 = f_0, \quad b_0 = f_0', \\
+    & \frac13 h_0 c_0 + \frac16 h_0 c_1 = \frac{f_1 - f_0}{h_0} - f_0', \\
+    & \frac13 h_{N-2} c_{N-2} + (\frac23 h_{N-2}  + \frac12 h_{N-1}) c_{N-1} =
+        3\frac{f_N - f_{N-1}}{h_{N-1}} - 2 \frac{f_{N-1} - f_{N-2}}{h_{N-2}} - f_N' , \\
+\end{align*}
+
+\end{document}
