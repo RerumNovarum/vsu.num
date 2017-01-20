@@ -18,7 +18,7 @@ tridiag_eqn_alloc(size_t n)
     void *buf = malloc(
             sizeof(struct tridiag_eqn) +
             sizeof(RR)*(a_no + b_no + c_no + f_no));
-    if (buf == NULL) return -1;
+    if (buf == NULL) return NULL;
     tridiag_eqn_ptr eq = buf;
     eq->a = buf + sizeof(struct tridiag_eqn);
     eq->b = eq->a + a_no;
