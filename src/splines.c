@@ -68,7 +68,7 @@ vsunum_cubspline_eqns_init(vsunum_cubspline_builder_ptr s,
     RR *cef = s->ce.f;
     RR h, hnext;
     h = x[1] - x[0];
-    for (uint32_t i = 0; i <= n-2; ++i) {
+    for (uint32_t i = 0; i <= n-3; ++i) {
         hnext = x[i+2] - x[i+1];
         cea[i+1] = h/6;
         ceb[i+1] = (h + hnext)/3;
@@ -199,7 +199,7 @@ vsunum_cubspline_load_table(char *filename)
 
     vsunum_cubspline_ptr spline =
         vsunum_cubspline_alloc(n);
-    RR *vals = malloc(sizeof(RR)*n);
+    RR *vals = malloc(sizeof(RR)*(n+1));
     if (vals == NULL || spline == NULL) {
         vsunum_cubspline_free(spline);
         return NULL;
