@@ -79,4 +79,23 @@ tridiag_eqn_solve(tridiag_eqn_ptr eq);
 void
 tridiag_eqn_init(tridiag_eqn_ptr eq);
 
+/* disturbed tridiagonal system
+ * derived by adding $k$ and $(k+1)$th columns
+ */
+struct tridiag_twocol
+{
+    RR *a, *b, *c, *p, *q, *f;
+    RR *x;
+    uint32_t k;
+    size_t n;
+};
+
+typedef struct tridiag_twocol * tridiag_twocol_ptr;
+
+tridiag_twocol_ptr
+tridiag_twocol_alloc(size_t n);
+
+int
+tridiag_twocol_solve(tridiag_twocol_ptr eq);
+
 #endif

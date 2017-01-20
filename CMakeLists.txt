@@ -7,7 +7,7 @@ find_library(M_LIBRARY m)
 set(vsunum_SRC include/vsu/num.h src/num.c src/num-numbers.c
                src/affine2.c src/affine3.c
                src/secant-method.c src/liblinsolve.c
-               src/libtridiagsolve.c
+               src/libtridiagsolve.c src/tridiag-twocol.c
                src/splines.c)
 add_library(vsunum STATIC ${vsunum_SRC})
 target_include_directories(vsunum PUBLIC 
@@ -50,4 +50,8 @@ add_test(test_secant test_secant)
 add_executable(test_tridiag tests/libtridiagsolve.c)
 target_link_libraries(test_tridiag vsunum)
 add_test(test_tridiag test_tridiag)
+
+add_executable(test_tridiag_twocol tests/tridiag-twocol.c)
+target_link_libraries(test_tridiag_twocol vsunum)
+add_test(test_tridiag_twocol test_tridiag_twocol)
 # pkg_check_modules(CHECK REQUIRED check)
