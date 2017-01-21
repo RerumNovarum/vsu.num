@@ -1,4 +1,5 @@
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <vsu/num.h>
 
@@ -86,8 +87,9 @@ struct tridiag_twocol
 {
     RR *a, *b, *c, *p, *q, *f;
     RR *x;
-    uint32_t k;
+    uint32_t k1, k2;
     size_t n;
+    bool free_self;
 };
 
 typedef struct tridiag_twocol * tridiag_twocol_ptr;
@@ -95,7 +97,16 @@ typedef struct tridiag_twocol * tridiag_twocol_ptr;
 tridiag_twocol_ptr
 tridiag_twocol_alloc(size_t n);
 
-int
+void
+tridiag_twocol_free(tridiag_twocol_ptr eq);
+
+void
 tridiag_twocol_solve(tridiag_twocol_ptr eq);
+
+void
+tridiag_twocol_compute_f(tridiag_twocol_ptr eq, RR *x, RR *f);
+
+tridiag_twocol_ptr
+tridiag_twocol_copyof(tridiag_twocol_ptr eq);
 
 #endif
