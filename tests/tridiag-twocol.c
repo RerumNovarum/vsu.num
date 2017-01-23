@@ -20,7 +20,7 @@ test(tridiag_twocol_ptr eq)
     printf("test(%zu, %u, %u):\n", n, k1, k2);
     printf("  answer: (");
     for (int i = 0; i < n; ++i) {
-        printf("%Lf, ", eq->a[i]);
+        printf("%Lf, ", eq->x[i]);
     }
     printf(")\n  nullity vector: (");
     RR dev = 0;
